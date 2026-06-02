@@ -22,13 +22,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('YPT · ${user.nickname}'),
+        title: Text(
+          'YPT · ${user.nickname}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Center(
-                child: Chip(
-                    label: Text(user.category.isEmpty ? '—' : user.category))),
+            padding: const EdgeInsets.only(right: 6),
+            child: Center(child: _CategoryPill(user.category)),
           ),
           IconButton(
             tooltip: 'Log out',
@@ -45,10 +47,57 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.timer_outlined), selectedIcon: Icon(Icons.timer), label: 'Timer'),
-          NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Stats'),
-          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Groups'),
+          NavigationDestination(
+              icon: Icon(Icons.timer_outlined),
+              selectedIcon: Icon(Icons.timer),
+              label: 'Timer'),
+          NavigationDestination(
+              icon: Icon(Icons.bar_chart_outlined),
+              selectedIcon: Icon(Icons.bar_chart),
+              label: 'Stats'),
+          NavigationDestination(
+              icon: Icon(Icons.groups_outlined),
+              selectedIcon: Icon(Icons.groups),
+              label: 'Groups'),
         ],
+      ),
+    );
+  }
+}
+
+class _CategoryPill extends StatelessWidget {
+  final String category;
+  const _CategoryPill(this.category);
+
+  @override
+  Widget build(BuildContext context) {
+    final label = category.isEmpty ? '—' : category;
+    final width = MediaQuery.sizeOf(context).width;
+    final maxWidth = width >= 720
+        ? 260.0
+        : width >= 480
+            ? 180.0
+            : 128.0;
+    final scheme = Theme.of(context).colorScheme;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 34, minWidth: 46),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: scheme.outline.withValues(alpha: 0.55)),
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.32),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+        ),
       ),
     );
   }

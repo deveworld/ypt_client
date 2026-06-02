@@ -18,11 +18,13 @@ class AppState extends ChangeNotifier {
   bool timerLoading = false;
   String? timerErrorText;
 
-  // 과목별 오늘 공부시간 (title -> ms), /logs/day 의 dl.ls 에서
+  // 과목별 오늘 공부시간 (normalized title -> ms). /logs/day 응답이 비거나
+  // 제목 표기가 살짝 달라도 reload/info 의 subject.sm 값을 fallback으로 쓴다.
   Map<String, int> subjectTimes = {};
 
   Future<void> refreshSubjectTimes() async {
-    subjectTimes = await api.dayLogSubjects(todayStr());
+    final loggedTimes = await api.dayLogSubjects(todayStr());
+    subjectTimes = _mergedSubjectTimes(loggedTimes);
     notifyListeners();
   }
 
@@ -58,6 +60,9 @@ class AppState extends ChangeNotifier {
 
   bool get loggedIn => user != null && api.jwt != null;
   bool get studying => activeSubject != null;
+
+  int subjectStudyMs(Subject subject) =>
+      subjectTimes[_subjectKey(subject.title)] ?? subject.studyMs;
 
   static String todayStr() {
     final d = DateTime.now();
@@ -227,6 +232,23 @@ class AppState extends ChangeNotifier {
       await refreshSubjectTimes();
     } catch (_) {}
   }
+
+  Map<String, int> _mergedSubjectTimes(Map<String, int> loggedTimes) {
+    final out = <String, int>{};
+    for (final subject in user?.subjects ?? const <Subject>[]) {
+      out[_subjectKey(subject.title)] = subject.studyMs;
+    }
+    for (final entry in loggedTimes.entries) {
+      final key = _subjectKey(entry.key);
+      if (entry.value > 0 || !out.containsKey(key)) {
+        out[key] = entry.value;
+      }
+    }
+    return out;
+  }
+
+  static String _subjectKey(String title) =>
+      title.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
   static String _readableError(Object e) {
     final text = e.toString();

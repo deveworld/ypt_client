@@ -81,13 +81,13 @@ class TimerView extends StatelessWidget {
             style: FilledButton.styleFrom(
               backgroundColor: ringColor,
               foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30)),
             ),
-            onPressed:
-                st.timerLoading ? null : () => context.read<AppState>().stopTimer(),
+            onPressed: st.timerLoading
+                ? null
+                : () => context.read<AppState>().stopTimer(),
             icon: st.timerLoading
                 ? const SizedBox(
                     width: 18,
@@ -138,7 +138,7 @@ class _SubjectCard extends StatelessWidget {
     final s = subject;
     final active = st.activeSubject?.id == s.id;
     final disabled = st.timerLoading;
-    final today = st.subjectTimes[s.title] ?? 0; // /logs/day 의 과목별 오늘 시간
+    final today = st.subjectStudyMs(s);
     final liveMs = today + (active ? st.elapsed.inMilliseconds : 0);
 
     void toggle() {
@@ -228,8 +228,7 @@ class _RingPainter extends CustomPainter {
           -math.pi / 2, 2 * math.pi * progress, false, arc);
     } else {
       final dot = Paint()..color = color.withValues(alpha: 0.4);
-      canvas.drawCircle(
-          Offset(center.dx, center.dy - radius), 5, dot);
+      canvas.drawCircle(Offset(center.dx, center.dy - radius), 5, dot);
     }
   }
 
