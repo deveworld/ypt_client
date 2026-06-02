@@ -8,24 +8,44 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-locale="en" suppressHydrationWarning>
-      <body>
+    <html lang="ko" data-locale="ko" suppressHydrationWarning>
+      <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (() => {
-                const languages = navigator.languages && navigator.languages.length
-                  ? navigator.languages
-                  : [navigator.language || "en"];
-                const locale = languages.some((language) =>
-                  String(language).toLowerCase().startsWith("ko")
-                ) ? "ko" : "en";
+                let locale = "ko";
+                try {
+                  const savedLocale = localStorage.getItem("ypt_locale");
+                  if (savedLocale === "en" || savedLocale === "ko") {
+                    locale = savedLocale;
+                  } else {
+                    const primaryLanguage = (
+                      navigator.languages && navigator.languages.length
+                        ? navigator.languages[0]
+                        : navigator.language || ""
+                    ).toLowerCase();
+                    locale = primaryLanguage.startsWith("en") ? "en" : "ko";
+                  }
+                } catch (_) {}
                 document.documentElement.dataset.locale = locale;
                 document.documentElement.lang = locale;
+                const applyLocalizedAttributes = () => {
+                  document.querySelectorAll("[data-alt-ko][data-alt-en]").forEach((element) => {
+                    element.setAttribute("alt", locale === "en" ? element.dataset.altEn : element.dataset.altKo);
+                  });
+                };
+                if (document.readyState === "loading") {
+                  document.addEventListener("DOMContentLoaded", applyLocalizedAttributes, { once: true });
+                } else {
+                  applyLocalizedAttributes();
+                }
               })();
             `
           }}
         />
+      </head>
+      <body>
         {children}
       </body>
     </html>
