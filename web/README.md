@@ -2,6 +2,10 @@
 
 Static Next.js landing page for the unofficial YPT Desktop Client.
 
+The page automatically switches visible copy between English and Korean based
+on the browser language list. Korean is used when any browser language starts
+with `ko`; otherwise English is shown.
+
 ## Run
 
 ```bash
