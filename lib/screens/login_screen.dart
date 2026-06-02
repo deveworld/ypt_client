@@ -108,7 +108,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2, color: Colors.white))
                       : const Text('Sign in',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 16),
                 Center(

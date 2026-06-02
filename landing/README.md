@@ -1,4 +1,4 @@
-# YPT Desktop Web Landing
+# YPT Desktop Landing
 
 Static Next.js landing page for the unofficial YPT Desktop Client.
 
@@ -19,8 +19,10 @@ npm run dev
 npm run build
 ```
 
-The build exports static files to `out/`. The repository workflow deploys that
-folder to GitHub Pages when files under `web/` change on `main`.
+The build exports static files to `out/`.
+
+The repository workflow builds the Flutter web demo from the root project and
+copies it into `landing/out/demo/`, then deploys `landing/out` to GitHub Pages.
 
 ## Hero Asset
 

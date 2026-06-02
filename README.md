@@ -41,7 +41,8 @@ lib/
 linux/                      Flutter Linux desktop target
 macos/                      Flutter macOS desktop target
 windows/                    Flutter Windows desktop target
-web/                        Next.js static landing page
+web/                        Flutter web demo target
+landing/                    Next.js static landing page
 .github/workflows/          GitHub Pages and release build workflows
 ```
 
@@ -78,16 +79,22 @@ for:
 - Windows x64 (`.zip`)
 - macOS x64 (`.zip`)
 
-Run the workflow manually with an existing release tag such as `v0.1.1`. Each
+Run the workflow manually with an existing release tag such as `v0.1.2`. Each
 job uploads the packaged app and a `.sha256` checksum file to that GitHub
 Release.
 
+The release build runs on OS-specific GitHub Actions runners. Flutter desktop
+does not support producing Windows or macOS desktop apps from a Linux host with
+only an extra compiler installed.
+
 ## Web Landing Page
 
-The landing page lives in `web/` and is built as a static Next.js export.
+The landing page lives in `landing/` and is built as a static Next.js export.
+The Flutter web demo uses the root Flutter app's `web/` target and is mounted
+under `/demo/` during the GitHub Pages build.
 
 ```bash
-cd web
+cd landing
 npm ci
 npm run dev
 ```
@@ -98,18 +105,26 @@ Static build:
 npm run build
 ```
 
-The exported site is written to `web/out/`.
+The exported site is written to `landing/out/`.
+
+Flutter web demo build:
+
+```bash
+flutter build web --release --base-href /demo/
+```
 
 ## GitHub Pages Deployment
 
 `.github/workflows/deploy-web.yml` deploys the web landing page to GitHub Pages
-when files under `web/` change on the `main` branch. The workflow also runs on
-manual `workflow_dispatch`.
+when files under `landing/`, `web/`, `lib/`, or Flutter dependency manifests
+change on the `main` branch. The workflow also runs on manual
+`workflow_dispatch`.
 
 Before first deployment, configure the repository Pages source to **GitHub
 Actions** in GitHub repository settings. For project Pages repositories, the
-workflow automatically builds with the repository name as the Next.js base path.
-For `*.github.io` repositories, it builds at the domain root.
+workflow automatically builds with the repository name as the Next.js base path
+and mounts the Flutter web demo at `/demo/`. For `*.github.io` repositories,
+it builds at the domain root.
 
 ## Development Notes
 
@@ -119,7 +134,9 @@ For `*.github.io` repositories, it builds at the domain root.
   numeric fields as different JSON primitive types.
 - Run `flutter analyze` before shipping Flutter changes when the Flutter SDK is
   available.
-- Run `npm run build` inside `web/` before shipping landing page changes.
+- Run `npm run build` inside `landing/` before shipping landing page changes.
+- Run `flutter build web --release --base-href /demo/` before shipping web demo
+  changes when the Flutter SDK is available.
 
 ## License
 

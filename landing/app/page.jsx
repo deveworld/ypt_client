@@ -3,6 +3,7 @@ import {
   Clock3,
   ExternalLink,
   Monitor,
+  PlayCircle,
   ShieldCheck,
   Terminal,
   UsersRound
@@ -13,16 +14,19 @@ const repoUrl = process.env.NEXT_PUBLIC_REPOSITORY_URL || "https://github.com";
 
 const text = {
   navFeatures: { en: "Features", ko: "기능" },
+  navDemo: { en: "Demo", ko: "데모" },
   navBuild: { en: "Build", ko: "빌드" },
   navNotice: { en: "Notice", ko: "고지" },
   primaryNavigation: { en: "Primary navigation", ko: "주요 탐색" },
   eyebrowHero: { en: "Unofficial interop client", ko: "비공식 연동 클라이언트" },
   heroCopy: {
-    en: "Run your YPT study timer, daily stats, and group activity from a Linux desktop client built with Flutter.",
-    ko: "열품타 공부 타이머, 오늘의 통계, 그룹 현황을 Linux 데스크톱에서 확인하고 조작하는 비공식 Flutter 클라이언트입니다."
+    en: "Run your YPT study timer, daily stats, and group activity from a Flutter client with desktop prebuilds and a browser demo.",
+    ko: "열품타 공부 타이머, 오늘의 통계, 그룹 현황을 데스크톱 prebuild와 브라우저 데모로 확인하는 비공식 Flutter 클라이언트입니다."
   },
+  tryDemo: { en: "Try demo", ko: "데모 실행" },
   buildLocally: { en: "Build locally", ko: "로컬 빌드" },
-  statusLinux: { en: "Linux desktop", ko: "Linux 데스크톱" },
+  statusLinux: { en: "Desktop prebuilds", ko: "데스크톱 prebuild" },
+  statusDemo: { en: "Web demo", ko: "웹 데모" },
   statusJwt: { en: "Local JWT storage", ko: "JWT 로컬 저장" },
   statusRisk: { en: "Use at your own risk", ko: "사용 책임 본인" },
   projectStatus: { en: "Project status", ko: "프로젝트 상태" },
@@ -42,10 +46,11 @@ const text = {
   },
   runLocally: { en: "Run locally", ko: "로컬 실행" },
   buildHeading: {
-    en: "Build the desktop app or this landing page",
-    ko: "데스크톱 앱과 랜딩 페이지 빌드"
+    en: "Build the desktop app, web demo, or landing page",
+    ko: "데스크톱 앱, 웹 데모, 랜딩 페이지 빌드"
   },
   flutterClient: { en: "Flutter client", ko: "Flutter 클라이언트" },
+  flutterDemo: { en: "Flutter web demo", ko: "Flutter 웹 데모" },
   webLanding: { en: "Web landing", ko: "웹 랜딩" },
   importantNotice: { en: "Important notice", ko: "중요 고지" },
   noticeHeading: {
@@ -86,7 +91,7 @@ const features = [
 ];
 
 const stack = [
-  { en: "Flutter Linux desktop", ko: "Flutter Linux 데스크톱" },
+  { en: "Flutter desktop and web targets", ko: "Flutter 데스크톱 및 웹 타깃" },
   { en: "Provider state management", ko: "Provider 상태 관리" },
   { en: "JWT stored locally", ko: "JWT 로컬 저장" },
   { en: "Static Next.js landing page", ko: "정적 Next.js 랜딩 페이지" }
@@ -103,6 +108,7 @@ function I18n({ value }) {
 
 export default function Page() {
   const heroImage = `${basePath}/hero-dashboard.png`;
+  const demoUrl = `${basePath}/demo/`;
 
   return (
     <main>
@@ -122,6 +128,7 @@ export default function Page() {
           </a>
           <div className="navLinks">
             <a href="#features"><I18n value={text.navFeatures} /></a>
+            <a href={demoUrl}><I18n value={text.navDemo} /></a>
             <a href="#build"><I18n value={text.navBuild} /></a>
             <a href="#notice"><I18n value={text.navNotice} /></a>
           </div>
@@ -132,7 +139,11 @@ export default function Page() {
           <h1>YPT Desktop Client</h1>
           <p className="heroCopy"><I18n value={text.heroCopy} /></p>
           <div className="heroActions">
-            <a className="button primary" href="#build">
+            <a className="button primary" href={demoUrl}>
+              <PlayCircle size={18} />
+              <I18n value={text.tryDemo} />
+            </a>
+            <a className="button secondary" href="#build">
               <Terminal size={18} />
               <I18n value={text.buildLocally} />
             </a>
@@ -144,6 +155,7 @@ export default function Page() {
           <div className="statusRail">
             <span className="srOnly"><I18n value={text.projectStatus} /></span>
             <span><I18n value={text.statusLinux} /></span>
+            <span><I18n value={text.statusDemo} /></span>
             <span><I18n value={text.statusJwt} /></span>
             <span><I18n value={text.statusRisk} /></span>
           </div>
@@ -195,8 +207,13 @@ flutter run -d linux
 flutter build linux`}</code></pre>
           </article>
           <article>
+            <h3><I18n value={text.flutterDemo} /></h3>
+            <pre><code>{`flutter pub get
+flutter build web --release --base-href /demo/`}</code></pre>
+          </article>
+          <article>
             <h3><I18n value={text.webLanding} /></h3>
-            <pre><code>{`cd web
+            <pre><code>{`cd landing
 npm ci
 npm run dev
 npm run build`}</code></pre>

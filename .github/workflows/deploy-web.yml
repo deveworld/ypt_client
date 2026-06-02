@@ -5,7 +5,11 @@ on:
     branches:
       - main
     paths:
+      - "landing/**"
       - "web/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
       - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
 
@@ -30,7 +34,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: landing/package-lock.json
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.1
+          cache: true
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6.0.0
@@ -39,24 +50,37 @@ jobs:
         run: |
           repo_name="${GITHUB_REPOSITORY#*/}"
           if [[ "$repo_name" == *.github.io ]]; then
-            echo "NEXT_PUBLIC_BASE_PATH=" >> "$GITHUB_ENV"
+            base_path=""
           else
-            echo "NEXT_PUBLIC_BASE_PATH=/$repo_name" >> "$GITHUB_ENV"
+            base_path="/$repo_name"
           fi
+          echo "NEXT_PUBLIC_BASE_PATH=$base_path" >> "$GITHUB_ENV"
+          echo "FLUTTER_WEB_BASE_HREF=$base_path/demo/" >> "$GITHUB_ENV"
           echo "NEXT_PUBLIC_REPOSITORY_URL=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" >> "$GITHUB_ENV"
 
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Flutter web demo
+        run: flutter build web --release --base-href "$FLUTTER_WEB_BASE_HREF"
+
       - name: Install dependencies
-        working-directory: web
+        working-directory: landing
         run: npm ci
 
-      - name: Build static site
-        working-directory: web
+      - name: Build landing page
+        working-directory: landing
         run: npm run build
+
+      - name: Mount Flutter demo under landing /demo
+        run: |
+          mkdir -p landing/out/demo
+          cp -a build/web/. landing/out/demo/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5.0.0
         with:
-          path: web/out
+          path: landing/out
 
   deploy:
     needs: build
