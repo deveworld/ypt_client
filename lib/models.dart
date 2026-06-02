@@ -157,7 +157,7 @@ class Subject {
   final int studyMs; // sm — 오늘 이 과목 공부 ms
   final int order; // or
   final int colorValue; // co — ARGB int
-  final bool archived; // dl(이 문맥) — 보관 여부 추정
+  final bool archived; // dl: 보관 여부로 추정(미확정). dl이 true일 때만 숨김 → 안전
 
   Subject({
     required this.id,
@@ -302,8 +302,10 @@ class RankMember {
   });
 
   factory RankMember.fromJson(Map<String, dynamic> j) {
+    // 공부시간: dl.sm 우선, 없으면 sd 폴백 (둘 다 study ms 후보)
     int sm = 0;
     if (j['dl'] is Map<String, dynamic>) sm = intValue(j['dl']['sm']);
+    if (sm <= 0) sm = intValue(j['sd']);
     return RankMember(
       nickname: stringValue(j['n']),
       userId: intValue(j['ud']),
@@ -315,7 +317,7 @@ class RankMember {
 
 /// 스터디 그룹 (/group/list-new-2, /group/groups/v2 의 gs 항목)
 class Group {
-  final int id; // gd (groupID)
+  final int id; // id (멤버 API가 쓰는 groupID. gd는 별개 id이므로 쓰지 않음)
   final String title; // t
   final String category; // c
   final String owner; // on (방장 닉네임)

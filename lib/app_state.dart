@@ -23,6 +23,15 @@ class AppState extends ChangeNotifier {
   Map<int, int> subjectTimesById = {};
   Map<String, int> subjectTimes = {};
 
+  /// 오늘 총 공부시간 = 과목별 합(타이머+수동추가 포함, dl.sm+dl.ad와 일치).
+  /// 과목별 데이터 없으면 dl.sm 폴백.
+  int get todayStudyMs {
+    if (subjectTimes.isNotEmpty) {
+      return subjectTimes.values.fold(0, (a, b) => a + b);
+    }
+    return user?.dayLog?.studyMs ?? 0;
+  }
+
   Future<void> refreshSubjectTimes() async {
     final loggedTimes = await api.dayLogSubjects(_currentLogDate());
     final mergedTimes = _mergedSubjectTimes(loggedTimes);
@@ -65,10 +74,12 @@ class AppState extends ChangeNotifier {
   bool get studying => activeSubject != null;
 
   int subjectStudyMs(Subject subject) {
-    if (subject.id > 0 && subjectTimesById.containsKey(subject.id)) {
-      return subjectTimesById[subject.id]!;
-    }
-    return subjectTimes[_subjectKey(subject.title)] ?? subject.studyMs;
+    // 과목별 오늘 시간은 ls에 title로만 와서 byTitle에 있음. byId는 0 기본값이라
+    // containsKey만 보면 0을 반환해 버림 → byId/byTitle 중 큰 값 채택.
+    final byTitle = subjectTimes[_subjectKey(subject.title)] ?? 0;
+    final byId = subject.id > 0 ? (subjectTimesById[subject.id] ?? 0) : 0;
+    final best = byId > byTitle ? byId : byTitle;
+    return best > 0 ? best : subject.studyMs;
   }
 
   static String todayStr() {
@@ -88,14 +99,19 @@ class AppState extends ChangeNotifier {
     statsLoading = true;
     statsErrorText = null;
     notifyListeners();
+    // 각각 독립 실행 — 하나 실패해도 나머지는 로드 (랭킹이 과목시간 실패에 막히지 않게)
     try {
       await refreshSubjectTimes();
+    } catch (_) {}
+    try {
       myRank = await api.myCategoryRank(user!.categoryId, user!.countryId);
+    } catch (e) {
+      statsErrorText = 'Could not load rank: ${_readableError(e)}';
+    }
+    try {
       ranks = await api.categoryRanks(user!.categoryId, user!.countryId,
           date: todayStr(), type: 'day');
-    } catch (e) {
-      statsErrorText = 'Could not load stats: ${_readableError(e)}';
-    }
+    } catch (_) {}
     statsLoading = false;
     notifyListeners();
   }

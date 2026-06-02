@@ -19,7 +19,7 @@ class TimerView extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     final user = st.user!;
-    final baseMs = user.dayLog?.studyMs ?? 0;
+    final baseMs = st.todayStudyMs; // 과목별 합산 (타이머+수동추가)
     final liveMs = baseMs + (st.studying ? st.elapsed.inMilliseconds : 0);
     final active = st.activeSubject;
     final ringColor = active?.color ?? kBrand;

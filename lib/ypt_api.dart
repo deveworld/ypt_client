@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'models.dart';
 
@@ -9,17 +8,10 @@ class YptApi {
   static const String base = 'https://pi.tgclab.com';
   static const Duration requestTimeout = Duration(seconds: 15);
 
-  static String get deviceModel {
-    if (kIsWeb) return 'YPT Web';
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.linux => 'YPT Linux',
-      TargetPlatform.macOS => 'YPT macOS',
-      TargetPlatform.windows => 'YPT Windows',
-      TargetPlatform.android => 'YPT Android',
-      TargetPlatform.iOS => 'YPT iOS',
-      TargetPlatform.fuchsia => 'YPT Client',
-    };
-  }
+  // 실제 앱과 동일하게 보이도록 — 안드로이드 기기 모델 + dart:io UA.
+  // (실제 앱은 Build.MODEL 과 Dart/<버전> (dart:io) 를 보낸다.)
+  static const String deviceModel = 'SM-S921N'; // Galaxy S24 (흔한 한국 모델)
+  static const String userAgent = 'Dart/3.11 (dart:io)';
 
   final http.Client _client;
   String? jwt;
@@ -29,6 +21,7 @@ class YptApi {
   Map<String, String> _headers({bool auth = true}) => {
         'Content-Type': 'application/json',
         'Accept-Encoding': 'gzip',
+        'User-Agent': userAgent, // 실제 앱과 동일 (Dart/3.11 dart:io)
         if (auth && jwt != null) 'authorization': 'JWT $jwt',
       };
 
@@ -96,8 +89,7 @@ class YptApi {
       'cd': {'su': old, 'sbu': old, 'cu': old, 'eu': old, 'du': old, 'tu': old},
     });
     _ensureOk(r, 'reload/info');
-    final j = _decodeObject(r);
-    return UserData.fromJson(j);
+    return UserData.fromJson(_decodeObject(r));
   }
 
   /// GET /logs/my-category-rank — 내 카테고리 등수. 응답 {s, mr}.
@@ -155,7 +147,6 @@ class YptApi {
       merge(subjectTimeSnapshotFromJson(dl, titleByIndex: titleByIndex));
     }
     merge(subjectTimeSnapshotFromJson(j, titleByIndex: titleByIndex));
-
     return SubjectTimeSnapshot(byId: byId, byTitle: byTitle);
   }
 
