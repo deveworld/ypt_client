@@ -18,13 +18,16 @@ class AppState extends ChangeNotifier {
   bool timerLoading = false;
   String? timerErrorText;
 
-  // 과목별 오늘 공부시간 (normalized title -> ms). /logs/day 응답이 비거나
-  // 제목 표기가 살짝 달라도 reload/info 의 subject.sm 값을 fallback으로 쓴다.
+  // 과목별 오늘 공부시간. /logs/day 응답이 비거나 제목 표기가 살짝 달라도
+  // reload/info 의 subject 시간 값을 fallback으로 쓴다.
+  Map<int, int> subjectTimesById = {};
   Map<String, int> subjectTimes = {};
 
   Future<void> refreshSubjectTimes() async {
-    final loggedTimes = await api.dayLogSubjects(todayStr());
-    subjectTimes = _mergedSubjectTimes(loggedTimes);
+    final loggedTimes = await api.dayLogSubjects(_currentLogDate());
+    final mergedTimes = _mergedSubjectTimes(loggedTimes);
+    subjectTimesById = mergedTimes.byId;
+    subjectTimes = mergedTimes.byTitle;
     notifyListeners();
   }
 
@@ -61,13 +64,23 @@ class AppState extends ChangeNotifier {
   bool get loggedIn => user != null && api.jwt != null;
   bool get studying => activeSubject != null;
 
-  int subjectStudyMs(Subject subject) =>
-      subjectTimes[_subjectKey(subject.title)] ?? subject.studyMs;
+  int subjectStudyMs(Subject subject) {
+    if (subject.id > 0 && subjectTimesById.containsKey(subject.id)) {
+      return subjectTimesById[subject.id]!;
+    }
+    return subjectTimes[_subjectKey(subject.title)] ?? subject.studyMs;
+  }
 
   static String todayStr() {
     final d = DateTime.now();
     String two(int n) => n.toString().padLeft(2, '0');
     return '${d.year}-${two(d.month)}-${two(d.day)}';
+  }
+
+  String _currentLogDate() {
+    final date = user?.dayLog?.date.trim();
+    if (date != null && date.length >= 10) return date.substring(0, 10);
+    return todayStr();
   }
 
   Future<void> loadStats() async {
@@ -138,6 +151,7 @@ class AppState extends ChangeNotifier {
     await sp.remove('jwt');
     api.jwt = null;
     user = null;
+    subjectTimesById = {};
     subjectTimes = {};
     myRank = null;
     ranks = [];
@@ -233,18 +247,32 @@ class AppState extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Map<String, int> _mergedSubjectTimes(Map<String, int> loggedTimes) {
-    final out = <String, int>{};
-    for (final subject in user?.subjects ?? const <Subject>[]) {
-      out[_subjectKey(subject.title)] = subject.studyMs;
-    }
-    for (final entry in loggedTimes.entries) {
-      final key = _subjectKey(entry.key);
-      if (entry.value > 0 || !out.containsKey(key)) {
-        out[key] = entry.value;
+  SubjectTimeSnapshot _mergedSubjectTimes(SubjectTimeSnapshot loggedTimes) {
+    final byId = <int, int>{};
+    final byTitle = <String, int>{};
+
+    void merge(SubjectTimeSnapshot snapshot) {
+      for (final entry in snapshot.byId.entries) {
+        if (entry.value > 0 || !byId.containsKey(entry.key)) {
+          byId[entry.key] = entry.value;
+        }
+      }
+      for (final entry in snapshot.byTitle.entries) {
+        final key = _subjectKey(entry.key);
+        if (entry.value > 0 || !byTitle.containsKey(key)) {
+          byTitle[key] = entry.value;
+        }
       }
     }
-    return out;
+
+    for (final subject in user?.subjects ?? const <Subject>[]) {
+      if (subject.id > 0) byId[subject.id] = subject.studyMs;
+      byTitle[_subjectKey(subject.title)] = subject.studyMs;
+    }
+    final dayLogTimes = user?.dayLog?.subjectTimes;
+    if (dayLogTimes != null) merge(dayLogTimes);
+    merge(loggedTimes);
+    return SubjectTimeSnapshot(byId: byId, byTitle: byTitle);
   }
 
   static String _subjectKey(String title) =>

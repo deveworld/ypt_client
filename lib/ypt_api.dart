@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'models.dart';
 
@@ -6,8 +7,19 @@ import 'models.dart';
 /// base=https://pi.tgclab.com, 인증=Authorization: JWT <token>.
 class YptApi {
   static const String base = 'https://pi.tgclab.com';
-  static const String deviceModel = 'YPT Desktop';
   static const Duration requestTimeout = Duration(seconds: 15);
+
+  static String get deviceModel {
+    if (kIsWeb) return 'YPT Web';
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.linux => 'YPT Linux',
+      TargetPlatform.macOS => 'YPT macOS',
+      TargetPlatform.windows => 'YPT Windows',
+      TargetPlatform.android => 'YPT Android',
+      TargetPlatform.iOS => 'YPT iOS',
+      TargetPlatform.fuchsia => 'YPT Client',
+    };
+  }
 
   final http.Client _client;
   String? jwt;
@@ -53,14 +65,17 @@ class YptApi {
 
   /// POST /user/sign-in-jwt — 이메일 로그인. 성공 시 jwt 저장.
   Future<SignInResult> signIn(String email, String password) async {
-    final r = await _post('/user/sign-in-jwt', {
-      'email': email,
-      'password': password,
-      'loginProvider': 'Email',
-      'new': true,
-      'getx': true,
-      'language': 'en',
-    }, auth: false);
+    final r = await _post(
+        '/user/sign-in-jwt',
+        {
+          'email': email,
+          'password': password,
+          'loginProvider': 'Email',
+          'new': true,
+          'getx': true,
+          'language': 'en',
+        },
+        auth: false);
     if (r.statusCode != 200) return SignInError('http_${r.statusCode}');
     final j = _decodeObject(r);
     if (j['s'] == true) {
@@ -104,25 +119,44 @@ class YptApi {
     _ensureOk(r, 'logs/category/member/ranks');
     final j = _decodeObject(r);
     final ms = j['ms'] is List ? j['ms'] as List : const [];
-    return ms.whereType<Map<String, dynamic>>().map(RankMember.fromJson).toList();
+    return ms
+        .whereType<Map<String, dynamic>>()
+        .map(RankMember.fromJson)
+        .toList();
   }
 
-  /// GET /logs/day?date= — 오늘 과목별 공부시간 (dayLog.ls). {sb:과목, sm:ms}.
-  Future<Map<String, int>> dayLogSubjects(String date) async {
+  /// GET /logs/day?date= — 오늘 과목별 공부시간 (dayLog.ls).
+  /// API 버전에 따라 과목 식별자가 제목 또는 id 계열 키로 내려올 수 있다.
+  Future<SubjectTimeSnapshot> dayLogSubjects(String date) async {
     final r = await _get('/logs/day?date=$date');
     _ensureOk(r, 'logs/day');
     final j = _decodeObject(r);
     final dl = j['dl'];
-    final ls = dl is Map<String, dynamic> && dl['ls'] is List
-        ? dl['ls'] as List
-        : const [];
-    final out = <String, int>{};
-    for (final e in ls.whereType<Map<String, dynamic>>()) {
-      final sb = e['sb'] == null ? null : stringValue(e['sb']);
-      final sm = intValue(e['sm']);
-      if (sb != null) out[sb] = (out[sb] ?? 0) + sm;
+    final subjectBooks = mapListValue(j['sbs']);
+    final titleByIndex = <int, String>{};
+    for (var i = 0; i < subjectBooks.length; i++) {
+      final title = firstStringValue(subjectBooks[i], const ['t', 'title']);
+      if (title != null && title.trim().isNotEmpty) titleByIndex[i] = title;
     }
-    return out;
+
+    final byId = <int, int>{};
+    final byTitle = <String, int>{};
+
+    void merge(SubjectTimeSnapshot snapshot) {
+      for (final entry in snapshot.byId.entries) {
+        byId[entry.key] = (byId[entry.key] ?? 0) + entry.value;
+      }
+      for (final entry in snapshot.byTitle.entries) {
+        byTitle[entry.key] = (byTitle[entry.key] ?? 0) + entry.value;
+      }
+    }
+
+    if (dl is Map<String, dynamic>) {
+      merge(subjectTimeSnapshotFromJson(dl, titleByIndex: titleByIndex));
+    }
+    merge(subjectTimeSnapshotFromJson(j, titleByIndex: titleByIndex));
+
+    return SubjectTimeSnapshot(byId: byId, byTitle: byTitle);
   }
 
   /// GET /group/list-new-2 — 둘러보기(신규) 그룹 목록. 응답 {s, gs:[...]}.
@@ -159,7 +193,10 @@ class YptApi {
     _ensureOk(r, 'logs/group/members/v2');
     final j = _decodeObject(r);
     final ms = j['ms'] is List ? j['ms'] as List : const [];
-    return ms.whereType<Map<String, dynamic>>().map(GroupMember.fromJson).toList();
+    return ms
+        .whereType<Map<String, dynamic>>()
+        .map(GroupMember.fromJson)
+        .toList();
   }
 
   /// POST /study/start — 타이머 시작. 응답에 dayLog 포함.
@@ -168,7 +205,9 @@ class YptApi {
         {'subject': subject, 'deviceModel': deviceModel, 'taskId': taskId});
     _ensureOk(r, 'study/start');
     final j = _decodeObject(r);
-    if (j['s'] == true && j['dl'] is Map<String, dynamic>) return DayLog.fromJson(j['dl']);
+    if (j['s'] == true && j['dl'] is Map<String, dynamic>) {
+      return DayLog.fromJson(j['dl']);
+    }
     throw YptApiException(j['c']?.toString() ?? 'study/start failed');
   }
 
@@ -178,7 +217,9 @@ class YptApi {
         '/study/stop', {'startedAt': startedAtMs, 'deviceModel': deviceModel});
     _ensureOk(r, 'study/stop');
     final j = _decodeObject(r);
-    if (j['s'] == true && j['dl'] is Map<String, dynamic>) return DayLog.fromJson(j['dl']);
+    if (j['s'] == true && j['dl'] is Map<String, dynamic>) {
+      return DayLog.fromJson(j['dl']);
+    }
     throw YptApiException(j['c']?.toString() ?? 'study/stop failed');
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
@@ -74,28 +75,39 @@ class _CategoryPill extends StatelessWidget {
     final label = category.isEmpty ? '—' : category;
     final width = MediaQuery.sizeOf(context).width;
     final maxWidth = width >= 720
-        ? 260.0
+        ? 180.0
         : width >= 480
-            ? 180.0
+            ? 150.0
             : 128.0;
     final scheme = Theme.of(context).colorScheme;
+    const textStyle = TextStyle(fontSize: 13, fontWeight: FontWeight.w700);
+    final textPainter = TextPainter(
+      text: const TextSpan(style: textStyle),
+      maxLines: 1,
+      textDirection: Directionality.of(context),
+    )..text = TextSpan(text: label, style: textStyle);
+    textPainter.layout(maxWidth: maxWidth - 24);
+    final pillWidth =
+        math.min(maxWidth, math.max(46.0, textPainter.width + 24));
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 34, minWidth: 46),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+    return SizedBox(
+      width: pillWidth,
+      height: 34,
+      child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: scheme.outline.withValues(alpha: 0.55)),
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.32),
         ),
-        child: Center(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Center(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textStyle,
+            ),
           ),
         ),
       ),

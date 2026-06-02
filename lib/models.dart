@@ -20,6 +20,23 @@ int? intOrNull(Object? value) {
 
 String stringValue(Object? value) => value?.toString() ?? '';
 
+String? firstStringValue(Map<String, dynamic> json, List<String> keys) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value != null) return stringValue(value);
+  }
+  return null;
+}
+
+int firstIntValue(Map<String, dynamic> json, List<String> keys,
+    {int fallback = 0}) {
+  for (final key in keys) {
+    final value = intOrNull(json[key]);
+    if (value != null) return value;
+  }
+  return fallback;
+}
+
 bool boolValue(Object? value, {bool fallback = false}) {
   if (value is bool) return value;
   if (value is num) return value != 0;
@@ -29,6 +46,109 @@ bool boolValue(Object? value, {bool fallback = false}) {
     if (lower == 'false' || lower == '0') return false;
   }
   return fallback;
+}
+
+List<Map<String, dynamic>> mapListValue(Object? value) {
+  final list = value is List ? value : const [];
+  return list.whereType<Map<String, dynamic>>().toList();
+}
+
+SubjectTimeSnapshot subjectTimeSnapshotFromJson(
+  Map<String, dynamic> json, {
+  Map<int, String> titleByIndex = const {},
+}) {
+  final byId = <int, int>{};
+  final byTitle = <String, int>{};
+
+  void addEntries(Object? value) {
+    for (final entry in mapListValue(value)) {
+      final studyMs = _studyMsFromLog(entry);
+      if (studyMs <= 0) continue;
+      final id = _subjectIdFromLog(entry);
+      final title = _subjectTitleFromLog(entry, titleByIndex);
+      if (id != null && id > 0) byId[id] = (byId[id] ?? 0) + studyMs;
+      if (title != null && title.trim().isNotEmpty) {
+        byTitle[title] = (byTitle[title] ?? 0) + studyMs;
+      }
+    }
+  }
+
+  addEntries(json['ls']);
+  addEntries(json['ss']);
+  addEntries(json['ts']);
+  return SubjectTimeSnapshot(byId: byId, byTitle: byTitle);
+}
+
+int? _subjectIdFromLog(Map<String, dynamic> json) {
+  final direct = intOrNull(json['si']) ??
+      intOrNull(json['sid']) ??
+      intOrNull(json['subjectId']) ??
+      intOrNull(json['subjectID']) ??
+      intOrNull(json['id']);
+  if (direct != null) return direct;
+  final sb = json['sb'];
+  return sb is String ? null : intOrNull(sb);
+}
+
+String? _subjectTitleFromLog(
+  Map<String, dynamic> json,
+  Map<int, String> titleByIndex,
+) {
+  final direct = firstStringValue(json, const [
+    'subject',
+    'subjectName',
+    'subjectTitle',
+    'title',
+    'tt',
+    't',
+  ]);
+  if (direct != null && direct.trim().isNotEmpty) return direct;
+  final sb = json['sb'];
+  if (sb is String && sb.trim().isNotEmpty) return sb;
+  final index = intOrNull(json['sbi']) ??
+      intOrNull(json['subjectIndex']) ??
+      intOrNull(json['subjectBookIndex']) ??
+      intOrNull(sb);
+  if (index != null) return titleByIndex[index];
+  return null;
+}
+
+int _studyMsFromLog(Map<String, dynamic> json) {
+  final direct = firstIntValue(json, const [
+    'sm',
+    'studyMs',
+    'studyMS',
+    'studyTime',
+    'todayStudyMs',
+    'todayStudyMS',
+    'todayStudyTime',
+    'todayMs',
+    'durationMs',
+    'duration',
+    'ms',
+    'sd',
+  ]);
+  if (direct > 0) return direct;
+
+  final start = firstIntValue(json, const [
+    'startedAt',
+    'startAt',
+    'start',
+    'st',
+    'from',
+  ]);
+  final end = firstIntValue(json, const [
+    'endedAt',
+    'endAt',
+    'end',
+    'et',
+    'to',
+  ]);
+  final elapsed = end - start;
+  if (start > 0 && elapsed > 0 && elapsed <= 24 * 60 * 60 * 1000) {
+    return elapsed;
+  }
+  return 0;
 }
 
 class Subject {
@@ -49,11 +169,36 @@ class Subject {
   });
 
   factory Subject.fromJson(Map<String, dynamic> j) => Subject(
-        id: intValue(j['id']),
-        title: stringValue(j['tt']),
-        studyMs: intValue(j['sm']),
+        id: firstIntValue(j, const [
+          'id',
+          'sid',
+          'subjectId',
+          'subjectID',
+          'si',
+        ]),
+        title: firstStringValue(j, const [
+              'tt',
+              't',
+              'title',
+              'subject',
+              'subjectName',
+              'subjectTitle',
+            ]) ??
+            '',
+        studyMs: firstIntValue(j, const [
+          'sm',
+          'studyMs',
+          'studyMS',
+          'studyTime',
+          'todayStudyMs',
+          'todayStudyMS',
+          'todayStudyTime',
+          'todayMs',
+          'totalStudyMs',
+          'ms',
+        ]),
         order: intValue(j['or']),
-        colorValue: intValue(j['co'], fallback: 0xFF888888),
+        colorValue: firstIntValue(j, const ['co', 'c'], fallback: 0xFF888888),
         archived: boolValue(j['dl']),
       );
 
@@ -66,6 +211,7 @@ class DayLog {
   final int maxStudyMs; // mm
   final int addedMs; // ad
   final String date; // dt
+  final SubjectTimeSnapshot subjectTimes;
 
   DayLog({
     required this.studyMs,
@@ -73,6 +219,7 @@ class DayLog {
     required this.maxStudyMs,
     required this.addedMs,
     required this.date,
+    required this.subjectTimes,
   });
 
   factory DayLog.fromJson(Map<String, dynamic> j) => DayLog(
@@ -81,7 +228,18 @@ class DayLog {
         maxStudyMs: intValue(j['mm']),
         addedMs: intValue(j['ad']),
         date: stringValue(j['dt']),
+        subjectTimes: subjectTimeSnapshotFromJson(j),
       );
+}
+
+class SubjectTimeSnapshot {
+  final Map<int, int> byId;
+  final Map<String, int> byTitle;
+
+  const SubjectTimeSnapshot({
+    this.byId = const {},
+    this.byTitle = const {},
+  });
 }
 
 /// 로그인/리로드 응답 묶음 (sign-in-jwt, reload/info 공통 구조)
