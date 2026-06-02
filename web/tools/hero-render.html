@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YPT Desktop Hero Render</title>
+    <style>
+      :root {
+        --brand: #e8552d;
+        --bg: #0d0d0f;
+        --card: #18181b;
+        --card2: #222227;
+        --text: #f8fafc;
+        --muted: #8f95a3;
+        --line: rgba(255, 255, 255, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        width: 1600px;
+        height: 900px;
+        margin: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 15%, rgba(232, 85, 45, 0.22), transparent 25%),
+          linear-gradient(135deg, #101013 0%, #0d0d0f 44%, #151518 100%);
+        color: var(--text);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      .stage {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        padding: 70px 86px;
+      }
+
+      .window {
+        width: 1180px;
+        height: 720px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        overflow: hidden;
+        background: var(--bg);
+        box-shadow:
+          0 44px 110px rgba(0, 0, 0, 0.55),
+          0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+
+      .topbar {
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 26px 0 30px;
+        background: var(--bg);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .appTitle {
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .chip {
+        min-width: 72px;
+        height: 34px;
+        border-radius: 17px;
+        display: grid;
+        place-items: center;
+        background: #2b2b31;
+        color: #d9dbe2;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .logout {
+        width: 38px;
+        height: 38px;
+        border-radius: 19px;
+        display: grid;
+        place-items: center;
+        color: #d8d9df;
+      }
+
+      .screen {
+        height: calc(100% - 72px);
+        display: grid;
+        grid-template-rows: 1fr 86px;
+      }
+
+      .timerPane {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        justify-items: center;
+        padding-top: 26px;
+      }
+
+      .ring {
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle, var(--bg) 56%, transparent 57%),
+          conic-gradient(var(--brand) 0deg 274deg, rgba(255, 255, 255, 0.07) 274deg 360deg);
+        position: relative;
+      }
+
+      .ring::after {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border-radius: 50%;
+        border: 12px solid var(--bg);
+      }
+
+      .ringInner {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+      }
+
+      .label {
+        margin-bottom: 6px;
+        color: #777d8a;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 3px;
+      }
+
+      .time {
+        font-variant-numeric: tabular-nums;
+        font-size: 42px;
+        font-weight: 300;
+      }
+
+      .subjectPill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 11px;
+        padding: 5px 14px;
+        border-radius: 999px;
+        background: rgba(232, 85, 45, 0.18);
+        color: var(--brand);
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .stopButton {
+        margin-top: 22px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        border-radius: 999px;
+        padding: 0 36px;
+        background: var(--brand);
+        color: white;
+        font-weight: 900;
+        letter-spacing: 1px;
+      }
+
+      .subjects {
+        width: min(820px, calc(100% - 64px));
+        align-self: stretch;
+        display: grid;
+        gap: 9px;
+        margin-top: 26px;
+      }
+
+      .subject {
+        height: 62px;
+        display: grid;
+        grid-template-columns: 42px 1fr auto;
+        align-items: center;
+        gap: 14px;
+        border-radius: 14px;
+        padding: 0 14px;
+        background: var(--card);
+      }
+
+      .subject.active {
+        background: var(--card2);
+        border: 1.4px solid rgba(232, 85, 45, 0.6);
+      }
+
+      .play {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: rgba(232, 85, 45, 0.18);
+        color: var(--brand);
+      }
+
+      .subject:nth-child(2) .play {
+        background: rgba(90, 139, 255, 0.18);
+        color: #5a8bff;
+      }
+
+      .subject:nth-child(3) .play {
+        background: rgba(88, 208, 130, 0.18);
+        color: #58d082;
+      }
+
+      .subjectName {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .subjectTime {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .subject.active .subjectTime {
+        color: var(--brand);
+        font-weight: 800;
+      }
+
+      .nav {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        align-items: center;
+        padding: 10px 18px 18px;
+        background: var(--card);
+      }
+
+      .navItem {
+        height: 56px;
+        display: grid;
+        place-items: center;
+        color: #a5a9b4;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .navItem.active {
+        border-radius: 28px;
+        background: rgba(232, 85, 45, 0.18);
+        color: #f1f2f5;
+      }
+
+      svg {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="window">
+        <div class="topbar">
+          <div class="appTitle">YPT · Alex</div>
+          <div class="actions">
+            <div class="chip">HS11</div>
+            <div class="logout" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <path d="m10 17 5-5-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="screen">
+          <div class="timerPane">
+            <div class="ring">
+              <div class="ringInner">
+                <div class="label">TODAY</div>
+                <div class="time">03:42:15</div>
+                <div class="subjectPill">Algorithms</div>
+              </div>
+            </div>
+            <div class="stopButton">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="7" y="7" width="10" height="10" rx="2" />
+              </svg>
+              STOP
+            </div>
+            <div class="subjects">
+              <div class="subject active">
+                <div class="play">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="7" y="6" width="4" height="12" rx="1" />
+                    <rect x="13" y="6" width="4" height="12" rx="1" />
+                  </svg>
+                </div>
+                <div class="subjectName">Algorithms</div>
+                <div class="subjectTime">01:24:36</div>
+              </div>
+              <div class="subject">
+                <div class="play">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+                <div class="subjectName">Operating Systems</div>
+                <div class="subjectTime">00:54:10</div>
+              </div>
+              <div class="subject">
+                <div class="play">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+                <div class="subjectName">Database Systems</div>
+                <div class="subjectTime">00:31:08</div>
+              </div>
+            </div>
+          </div>
+          <div class="nav">
+            <div class="navItem active">Timer</div>
+            <div class="navItem">Stats</div>
+            <div class="navItem">Groups</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
