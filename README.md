@@ -39,13 +39,17 @@ lib/
   screens/                  Login, home, timer, stats, group screens
 
 linux/                      Flutter Linux desktop target
+macos/                      Flutter macOS desktop target
+windows/                    Flutter Windows desktop target
 web/                        Next.js static landing page
-.github/workflows/          GitHub Pages deployment workflow
+.github/workflows/          GitHub Pages and release build workflows
 ```
 
 ## Desktop Build
 
-The Flutter app is currently configured for Linux desktop.
+The Flutter app is configured for Linux, Windows, and macOS desktop. Flutter
+desktop builds should be produced on the matching host OS; local development on
+Linux can build the Linux target directly.
 
 ```bash
 flutter doctor
@@ -53,7 +57,7 @@ flutter pub get
 flutter run -d linux
 ```
 
-Release build:
+Linux release build:
 
 ```bash
 flutter build linux
@@ -64,6 +68,19 @@ The release executable is generated under:
 ```text
 build/linux/x64/release/bundle/ypt_client
 ```
+
+## Desktop Release Assets
+
+`.github/workflows/release-desktop.yml` builds prebuilt desktop release assets
+for:
+
+- Linux x64 (`.tar.gz`)
+- Windows x64 (`.zip`)
+- macOS x64 (`.zip`)
+
+Run the workflow manually with an existing release tag such as `v0.1.1`. Each
+job uploads the packaged app and a `.sha256` checksum file to that GitHub
+Release.
 
 ## Web Landing Page
 
