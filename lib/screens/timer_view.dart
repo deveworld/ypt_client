@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
 import '../main.dart' show kBrand, kCard, kCard2;
+import '../models.dart';
 
 String fmt(Duration d) {
   String two(int n) => n.toString().padLeft(2, '0');
@@ -85,13 +86,33 @@ class TimerView extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30)),
             ),
-            onPressed: () => context.read<AppState>().stopTimer(),
-            icon: const Icon(Icons.stop_rounded),
+            onPressed:
+                st.timerLoading ? null : () => context.read<AppState>().stopTimer(),
+            icon: st.timerLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.stop_rounded),
             label: const Text('STOP',
-                style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
           )
         else
           const SizedBox(height: 44),
+        if (st.timerErrorText != null) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              st.timerErrorText!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+            ),
+          ),
+        ],
         const SizedBox(height: 20),
         // 과목 카드 리스트
         Expanded(
@@ -108,7 +129,7 @@ class TimerView extends StatelessWidget {
 }
 
 class _SubjectCard extends StatelessWidget {
-  final dynamic subject;
+  final Subject subject;
   const _SubjectCard({required this.subject});
 
   @override
@@ -116,6 +137,7 @@ class _SubjectCard extends StatelessWidget {
     final st = context.watch<AppState>();
     final s = subject;
     final active = st.activeSubject?.id == s.id;
+    final disabled = st.timerLoading;
     final today = st.subjectTimes[s.title] ?? 0; // /logs/day 의 과목별 오늘 시간
     final liveMs = today + (active ? st.elapsed.inMilliseconds : 0);
 
@@ -128,47 +150,52 @@ class _SubjectCard extends StatelessWidget {
       }
     }
 
-    return Material(
-      color: active ? kCard2 : kCard,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
+    return Opacity(
+      opacity: disabled && !active ? 0.55 : 1,
+      child: Material(
+        color: active ? kCard2 : kCard,
         borderRadius: BorderRadius.circular(14),
-        onTap: toggle,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: active
-                ? Border.all(color: s.color.withValues(alpha: 0.6), width: 1.4)
-                : null,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    color: s.color.withValues(alpha: 0.18),
-                    shape: BoxShape.circle),
-                child: Icon(
-                    active ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: s.color,
-                    size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(s.title,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: disabled ? null : toggle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: active
+                  ? Border.all(
+                      color: s.color.withValues(alpha: 0.6), width: 1.4)
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                      color: s.color.withValues(alpha: 0.18),
+                      shape: BoxShape.circle),
+                  child: Icon(
+                      active ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: s.color,
+                      size: 26),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(s.title,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight:
+                              active ? FontWeight.bold : FontWeight.w500)),
+                ),
+                Text(fmtMs(liveMs),
                     style: TextStyle(
-                        fontSize: 15,
+                        color: active ? s.color : Colors.grey[500],
                         fontWeight:
-                            active ? FontWeight.bold : FontWeight.w500)),
-              ),
-              Text(fmtMs(liveMs),
-                  style: TextStyle(
-                      color: active ? s.color : Colors.grey[500],
-                      fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                      fontFeatures: const [FontFeature.tabularFigures()])),
-            ],
+                            active ? FontWeight.bold : FontWeight.normal,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
+              ],
+            ),
           ),
         ),
       ),

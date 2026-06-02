@@ -28,6 +28,11 @@ class _GroupsViewState extends State<GroupsView> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (st.groupsErrorText != null) ...[
+            Text(st.groupsErrorText!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+            const SizedBox(height: 12),
+          ],
           if (st.joinedGroups.isNotEmpty) ...[
             const _SectionTitle('My Groups'),
             ...st.joinedGroups.map((g) => _GroupCard(group: g, joined: true)),
@@ -115,6 +120,10 @@ class _GroupCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                if (joined) ...[
+                  const Icon(Icons.check_circle, size: 16, color: kBrand),
+                  const SizedBox(width: 8),
+                ],
                 Column(
                   children: [
                     const Icon(Icons.person, size: 14, color: Colors.grey),

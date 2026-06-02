@@ -21,11 +21,26 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
     _future = context.read<AppState>().fetchMembers(widget.group.id);
   }
 
+  void _reload() {
+    setState(() {
+      _future = context.read<AppState>().fetchMembers(widget.group.id);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final g = widget.group;
     return Scaffold(
-      appBar: AppBar(title: Text(g.title)),
+      appBar: AppBar(
+        title: Text(g.title),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh),
+            onPressed: _reload,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // 그룹 헤더
@@ -84,8 +99,28 @@ class _GroupRoomScreenState extends State<GroupRoomScreen> {
             child: FutureBuilder<List<GroupMember>>(
               future: _future,
               builder: (context, snap) {
-                if (!snap.hasData) {
+                if (snap.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator());
+                }
+                if (snap.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('Could not load members',
+                              style: TextStyle(color: Colors.redAccent)),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: _reload,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
                 final members = [...snap.data!]
                   ..sort((a, b) => b.studyMs.compareTo(a.studyMs));

@@ -3,6 +3,34 @@ import 'package:flutter/material.dart';
 /// YPT API 응답 모델. 키 해독은 RE 스펙(key_dictionary) 기반.
 /// 응답은 축약 키를 쓴다: s=success, jwt=토큰, ss=과목배열, dl=오늘로그, p=프로필.
 
+int intValue(Object? value, {int fallback = 0}) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? fallback;
+  return fallback;
+}
+
+int? intOrNull(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+String stringValue(Object? value) => value?.toString() ?? '';
+
+bool boolValue(Object? value, {bool fallback = false}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final lower = value.toLowerCase();
+    if (lower == 'true' || lower == '1') return true;
+    if (lower == 'false' || lower == '0') return false;
+  }
+  return fallback;
+}
+
 class Subject {
   final int id;
   final String title; // tt
@@ -21,12 +49,12 @@ class Subject {
   });
 
   factory Subject.fromJson(Map<String, dynamic> j) => Subject(
-        id: (j['id'] ?? 0) as int,
-        title: (j['tt'] ?? '') as String,
-        studyMs: (j['sm'] ?? 0) as int,
-        order: (j['or'] ?? 0) as int,
-        colorValue: (j['co'] ?? 0xFF888888) as int,
-        archived: (j['dl'] ?? false) as bool,
+        id: intValue(j['id']),
+        title: stringValue(j['tt']),
+        studyMs: intValue(j['sm']),
+        order: intValue(j['or']),
+        colorValue: intValue(j['co'], fallback: 0xFF888888),
+        archived: boolValue(j['dl']),
       );
 
   Color get color => Color(colorValue == 0 ? 0xFF888888 : colorValue);
@@ -48,11 +76,11 @@ class DayLog {
   });
 
   factory DayLog.fromJson(Map<String, dynamic> j) => DayLog(
-        studyMs: (j['sm'] ?? 0) as int,
-        restMs: (j['rm'] ?? 0) as int,
-        maxStudyMs: (j['mm'] ?? 0) as int,
-        addedMs: (j['ad'] ?? 0) as int,
-        date: (j['dt'] ?? '') as String,
+        studyMs: intValue(j['sm']),
+        restMs: intValue(j['rm']),
+        maxStudyMs: intValue(j['mm']),
+        addedMs: intValue(j['ad']),
+        date: stringValue(j['dt']),
       );
 }
 
@@ -79,7 +107,7 @@ class UserData {
   });
 
   factory UserData.fromJson(Map<String, dynamic> j) {
-    final ssList = (j['ss'] as List?) ?? const [];
+    final ssList = j['ss'] is List ? j['ss'] as List : const [];
     final subjects = ssList
         .whereType<Map<String, dynamic>>()
         .map(Subject.fromJson)
@@ -89,14 +117,14 @@ class UserData {
     DayLog? dl;
     if (j['dl'] is Map<String, dynamic>) dl = DayLog.fromJson(j['dl']);
     return UserData(
-      jwt: j['jwt'] as String?,
-      nickname: (j['n'] ?? '') as String,
-      category: (j['ct'] ?? '') as String,
-      email: j['e'] as String?,
+      jwt: j['jwt'] == null ? null : stringValue(j['jwt']),
+      nickname: stringValue(j['n']),
+      category: stringValue(j['ct']),
+      email: j['e'] == null ? null : stringValue(j['e']),
       subjects: subjects,
       dayLog: dl,
-      categoryId: (j['ci'] ?? 0) as int,
-      countryId: (j['coid'] ?? 0) as int,
+      categoryId: intValue(j['ci']),
+      countryId: intValue(j['coid']),
     );
   }
 }
@@ -117,12 +145,12 @@ class RankMember {
 
   factory RankMember.fromJson(Map<String, dynamic> j) {
     int sm = 0;
-    if (j['dl'] is Map<String, dynamic>) sm = (j['dl']['sm'] ?? 0) as int;
+    if (j['dl'] is Map<String, dynamic>) sm = intValue(j['dl']['sm']);
     return RankMember(
-      nickname: (j['n'] ?? '') as String,
-      userId: (j['ud'] ?? 0) as int,
+      nickname: stringValue(j['n']),
+      userId: intValue(j['ud']),
       studyMs: sm,
-      studiconId: (j['si'] ?? 0) as int,
+      studiconId: intValue(j['si']),
     );
   }
 }
@@ -146,12 +174,12 @@ class Group {
   });
 
   factory Group.fromJson(Map<String, dynamic> j) => Group(
-        id: (j['id'] ?? j['gd'] ?? 0) as int, // groupID = id (멤버 API가 쓰는 값)
-        title: (j['t'] ?? '') as String,
-        category: (j['c'] ?? '') as String,
-        owner: (j['on'] ?? '') as String,
-        slogan: (j['sn'] ?? '') as String,
-        memberCount: (j['mc'] ?? 0) as int,
+        id: intValue(j['id'] ?? j['gd']), // groupID = id (멤버 API가 쓰는 값)
+        title: stringValue(j['t']),
+        category: stringValue(j['c']),
+        owner: stringValue(j['on']),
+        slogan: stringValue(j['sn']),
+        memberCount: intValue(j['mc']),
       );
 }
 
@@ -173,13 +201,13 @@ class GroupMember {
 
   factory GroupMember.fromJson(Map<String, dynamic> j) {
     int sm = 0;
-    if (j['dl'] is Map<String, dynamic>) sm = (j['dl']['sm'] ?? 0) as int;
+    if (j['dl'] is Map<String, dynamic>) sm = intValue(j['dl']['sm']);
     return GroupMember(
-      userId: (j['ud'] ?? 0) as int,
-      nickname: (j['n'] ?? '') as String,
-      category: (j['ct'] ?? '') as String,
+      userId: intValue(j['ud']),
+      nickname: stringValue(j['n']),
+      category: stringValue(j['ct']),
       studyMs: sm,
-      studying: j['im'] == true,
+      studying: boolValue(j['im']),
     );
   }
 }

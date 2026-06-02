@@ -7,8 +7,12 @@ import 'models.dart';
 class YptApi {
   static const String base = 'https://pi.tgclab.com';
   static const String deviceModel = 'YPT Desktop';
+  static const Duration requestTimeout = Duration(seconds: 15);
 
+  final http.Client _client;
   String? jwt;
+
+  YptApi({http.Client? client}) : _client = client ?? http.Client();
 
   Map<String, String> _headers({bool auth = true}) => {
         'Content-Type': 'application/json',
@@ -18,23 +22,51 @@ class YptApi {
 
   Uri _u(String path) => Uri.parse('$base$path');
 
+  Future<http.Response> _get(String path) =>
+      _client.get(_u(path), headers: _headers()).timeout(requestTimeout);
+
+  Future<http.Response> _post(
+    String path,
+    Map<String, Object?> body, {
+    bool auth = true,
+  }) =>
+      _client
+          .post(_u(path), headers: _headers(auth: auth), body: jsonEncode(body))
+          .timeout(requestTimeout);
+
+  Map<String, dynamic> _decodeObject(http.Response r) {
+    final decoded = jsonDecode(utf8.decode(r.bodyBytes));
+    if (decoded is Map<String, dynamic>) return decoded;
+    if (decoded is Map) return decoded.cast<String, dynamic>();
+    throw const FormatException('Expected a JSON object response.');
+  }
+
+  void _ensureOk(http.Response r, String endpoint) {
+    if (r.statusCode != 200) {
+      throw YptApiException('$endpoint HTTP ${r.statusCode}');
+    }
+  }
+
+  void close() {
+    _client.close();
+  }
+
   /// POST /user/sign-in-jwt — 이메일 로그인. 성공 시 jwt 저장.
   Future<SignInResult> signIn(String email, String password) async {
-    final r = await http.post(
-      _u('/user/sign-in-jwt'),
-      headers: _headers(auth: false),
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'loginProvider': 'Email',
-        'new': true,
-        'getx': true,
-        'language': 'en',
-      }),
-    );
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
+    final r = await _post('/user/sign-in-jwt', {
+      'email': email,
+      'password': password,
+      'loginProvider': 'Email',
+      'new': true,
+      'getx': true,
+      'language': 'en',
+    }, auth: false);
+    if (r.statusCode != 200) return SignInError('http_${r.statusCode}');
+    final j = _decodeObject(r);
     if (j['s'] == true) {
-      jwt = j['jwt'] as String?;
+      final token = j['jwt']?.toString();
+      if (token == null || token.isEmpty) return SignInError('missing_jwt');
+      jwt = token;
       return SignInOk(UserData.fromJson(j));
     }
     return SignInError(j['c']?.toString() ?? 'unknown');
@@ -44,30 +76,22 @@ class YptApi {
   /// 바디: {pv, cd:{su,sbu,cu,eu,du,tu 동기화 시각}}. 오래된 시각을 보내 전체 데이터 수신.
   Future<UserData> reloadInfo() async {
     const old = '2019-01-01T00:00:00+00:00';
-    final r = await http.post(
-      _u('/user/v2/reload/info'),
-      headers: _headers(),
-      body: jsonEncode({
-        'pv': 2,
-        'cd': {'su': old, 'sbu': old, 'cu': old, 'eu': old, 'du': old, 'tu': old},
-      }),
-    );
-    if (r.statusCode != 200) {
-      throw Exception('reload/info HTTP ${r.statusCode}');
-    }
-    final text = utf8.decode(r.bodyBytes);
-    final j = jsonDecode(text) as Map<String, dynamic>;
+    final r = await _post('/user/v2/reload/info', {
+      'pv': 2,
+      'cd': {'su': old, 'sbu': old, 'cu': old, 'eu': old, 'du': old, 'tu': old},
+    });
+    _ensureOk(r, 'reload/info');
+    final j = _decodeObject(r);
     return UserData.fromJson(j);
   }
 
   /// GET /logs/my-category-rank — 내 카테고리 등수. 응답 {s, mr}.
   Future<int?> myCategoryRank(int categoryId, int countryId) async {
-    final r = await http.get(
-        _u('/logs/my-category-rank?category_id=$categoryId&country_id=$countryId'),
-        headers: _headers());
-    if (r.statusCode != 200) return null;
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
-    if (j['s'] == true) return j['mr'] as int?;
+    final r = await _get(
+        '/logs/my-category-rank?category_id=$categoryId&country_id=$countryId');
+    _ensureOk(r, 'logs/my-category-rank');
+    final j = _decodeObject(r);
+    if (j['s'] == true) return intOrNull(j['mr']);
     return null;
   }
 
@@ -75,27 +99,27 @@ class YptApi {
   /// 응답 {s, ms:[{n,sd,ud,si,...}], tc}. sd=공부ms, n=닉네임, si=studiconID.
   Future<List<RankMember>> categoryRanks(int categoryId, int countryId,
       {String type = 'day', int page = 1, required String date}) async {
-    final r = await http.get(
-        _u('/logs/category/member/ranks?date=$date&categoryID=$categoryId&countryID=$countryId&page=$page&type=$type'),
-        headers: _headers());
-    if (r.statusCode != 200) return [];
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
-    final ms = (j['ms'] as List?) ?? const [];
+    final r = await _get(
+        '/logs/category/member/ranks?date=$date&categoryID=$categoryId&countryID=$countryId&page=$page&type=$type');
+    _ensureOk(r, 'logs/category/member/ranks');
+    final j = _decodeObject(r);
+    final ms = j['ms'] is List ? j['ms'] as List : const [];
     return ms.whereType<Map<String, dynamic>>().map(RankMember.fromJson).toList();
   }
 
   /// GET /logs/day?date= — 오늘 과목별 공부시간 (dayLog.ls). {sb:과목, sm:ms}.
   Future<Map<String, int>> dayLogSubjects(String date) async {
-    final r = await http.get(_u('/logs/day?date=$date'), headers: _headers());
-    if (r.statusCode != 200) return {};
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
-    final ls = (j['dl'] is Map<String, dynamic>)
-        ? (j['dl']['ls'] as List?) ?? const []
+    final r = await _get('/logs/day?date=$date');
+    _ensureOk(r, 'logs/day');
+    final j = _decodeObject(r);
+    final dl = j['dl'];
+    final ls = dl is Map<String, dynamic> && dl['ls'] is List
+        ? dl['ls'] as List
         : const [];
     final out = <String, int>{};
     for (final e in ls.whereType<Map<String, dynamic>>()) {
-      final sb = e['sb'] as String?;
-      final sm = (e['sm'] ?? 0) as int;
+      final sb = e['sb'] == null ? null : stringValue(e['sb']);
+      final sm = intValue(e['sm']);
       if (sb != null) out[sb] = (out[sb] ?? 0) + sm;
     }
     return out;
@@ -103,24 +127,23 @@ class YptApi {
 
   /// GET /group/list-new-2 — 둘러보기(신규) 그룹 목록. 응답 {s, gs:[...]}.
   Future<List<Group>> browseGroups(int countryId, {int page = 1}) async {
-    final r = await http.get(
-        _u('/group/list-new-2?category_id=0&order_type=promotedAt&only_available=false&only_open=false&only_cam=false&page=$page&country_id=$countryId&p=true'),
-        headers: _headers());
-    if (r.statusCode != 200) return [];
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
-    final gs = (j['gs'] as List?) ?? const [];
+    final r = await _get(
+        '/group/list-new-2?category_id=0&order_type=promotedAt&only_available=false&only_open=false&only_cam=false&page=$page&country_id=$countryId&p=true');
+    _ensureOk(r, 'group/list-new-2');
+    final j = _decodeObject(r);
+    final gs = j['gs'] is List ? j['gs'] as List : const [];
     return gs.whereType<Map<String, dynamic>>().map(Group.fromJson).toList();
   }
 
   /// GET /group/groups/v2 — 내가 속한 그룹. 응답 {s, gs, ms, cs, ps} 4개 배열에 분산.
   Future<List<Group>> myGroups() async {
-    final r = await http.get(_u('/group/groups/v2'), headers: _headers());
-    if (r.statusCode != 200) return [];
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
+    final r = await _get('/group/groups/v2');
+    _ensureOk(r, 'group/groups/v2');
+    final j = _decodeObject(r);
     final out = <Group>[];
     final seen = <int>{};
     for (final key in ['gs', 'ms', 'cs', 'ps']) {
-      final list = (j[key] as List?) ?? const [];
+      final list = j[key] is List ? j[key] as List : const [];
       for (final item in list.whereType<Map<String, dynamic>>()) {
         final g = Group.fromJson(item);
         if (g.title.isNotEmpty && seen.add(g.id)) out.add(g);
@@ -131,34 +154,41 @@ class YptApi {
 
   /// GET /logs/group/members/v2 — 그룹 멤버(공부 현황). 응답 {s, ms:[...]}.
   Future<List<GroupMember>> groupMembers(int groupId, int countryId) async {
-    final r = await http.get(
-        _u('/logs/group/members/v2?groupID=$groupId&countryID=$countryId&isLooking=true&version=810046'),
-        headers: _headers());
-    if (r.statusCode != 200) return [];
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
-    final ms = (j['ms'] as List?) ?? const [];
+    final r = await _get(
+        '/logs/group/members/v2?groupID=$groupId&countryID=$countryId&isLooking=true&version=810046');
+    _ensureOk(r, 'logs/group/members/v2');
+    final j = _decodeObject(r);
+    final ms = j['ms'] is List ? j['ms'] as List : const [];
     return ms.whereType<Map<String, dynamic>>().map(GroupMember.fromJson).toList();
   }
 
   /// POST /study/start — 타이머 시작. 응답에 dayLog 포함.
   Future<DayLog?> studyStart(String subject, {int? taskId}) async {
-    final r = await http.post(_u('/study/start'),
-        headers: _headers(),
-        body: jsonEncode({'subject': subject, 'deviceModel': deviceModel, 'taskId': taskId}));
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
+    final r = await _post('/study/start',
+        {'subject': subject, 'deviceModel': deviceModel, 'taskId': taskId});
+    _ensureOk(r, 'study/start');
+    final j = _decodeObject(r);
     if (j['s'] == true && j['dl'] is Map<String, dynamic>) return DayLog.fromJson(j['dl']);
-    return null;
+    throw YptApiException(j['c']?.toString() ?? 'study/start failed');
   }
 
   /// POST /study/stop — 타이머 정지. startedAt=시작 epoch(ms).
   Future<DayLog?> studyStop(int startedAtMs) async {
-    final r = await http.post(_u('/study/stop'),
-        headers: _headers(),
-        body: jsonEncode({'startedAt': startedAtMs, 'deviceModel': deviceModel}));
-    final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
+    final r = await _post(
+        '/study/stop', {'startedAt': startedAtMs, 'deviceModel': deviceModel});
+    _ensureOk(r, 'study/stop');
+    final j = _decodeObject(r);
     if (j['s'] == true && j['dl'] is Map<String, dynamic>) return DayLog.fromJson(j['dl']);
-    return null;
+    throw YptApiException(j['c']?.toString() ?? 'study/stop failed');
   }
+}
+
+class YptApiException implements Exception {
+  final String message;
+  const YptApiException(this.message);
+
+  @override
+  String toString() => message;
 }
 
 /// 로그인 에러코드 → 사람이 읽을 메시지 (RE 스펙 에러카탈로그)
@@ -172,7 +202,12 @@ String errorMessage(String code) {
       return 'Request rejected.';
     case 'alert_server_error_msg':
       return 'A server error occurred.';
+    case 'missing_jwt':
+      return 'Sign in failed — the server did not return a session token.';
     default:
+      if (code.startsWith('http_')) {
+        return 'Request failed (HTTP ${code.substring(5)}).';
+      }
       return 'Error (code: $code)';
   }
 }

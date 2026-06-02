@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
+import '../models.dart';
 import 'timer_view.dart' show fmtMs;
 
 class StatsView extends StatefulWidget {
@@ -23,7 +24,7 @@ class _StatsViewState extends State<StatsView> {
     final st = context.watch<AppState>();
     final user = st.user!;
     final dl = user.dayLog;
-    int t(s) => st.subjectTimes[s.title] ?? 0; // 과목별 오늘 시간
+    int t(Subject s) => st.subjectTimes[s.title] ?? 0; // 과목별 오늘 시간
     final subjects = [...user.subjects]..sort((a, b) => t(b).compareTo(t(a)));
     final maxMs = subjects.isEmpty
         ? 1
@@ -34,8 +35,13 @@ class _StatsViewState extends State<StatsView> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Today · ${DateTime.now().toString().substring(0, 10)}',
+          Text('Today · ${AppState.todayStr()}',
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          if (st.statsErrorText != null) ...[
+            const SizedBox(height: 8),
+            Text(st.statsErrorText!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+          ],
           const SizedBox(height: 12),
           // 요약 카드
           Wrap(
