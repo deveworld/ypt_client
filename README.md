@@ -1,56 +1,48 @@
 # YPT Desktop Client
 
-> Unofficial desktop client and web landing page for YPT / 열품타.
+Unofficial Flutter desktop client, Flutter web demo, and Next.js landing page
+for YPT / 열품타.
 
-YPT Desktop Client는 본인 계정의 공부 타이머, 오늘의 통계, 그룹 현황을
-Linux 데스크톱에서 확인하고 조작하기 위한 Flutter 앱입니다. YPT 모바일 앱이
-사용하는 공개 HTTPS API(`pi.tgclab.com`)와 직접 통신합니다.
-
-![YPT Desktop landing hero](web/public/hero-dashboard.png)
+![YPT Desktop Client landing hero](landing/public/hero-dashboard.png)
 
 ## Important Notice
 
-- 이 프로젝트는 **비공식**이며 YPT, Pallo Inc. 또는 관련 권리자와 제휴,
-  후원, 승인 관계가 없습니다.
-- 본인 계정 interop 용도로만 의도되었습니다. 타인 계정 조작, 자동화 악용,
-  공부시간 조작은 의도된 사용이 아닙니다.
-- 문서화되지 않은 API를 사용하므로 예고 없이 동작하지 않을 수 있고, 서비스
-  약관에 저촉될 수 있습니다. 모든 사용 책임은 사용자 본인에게 있습니다.
-- 이메일/비밀번호는 YPT API 로그인 요청에만 사용됩니다. 로그인 JWT는 로컬
-  `shared_preferences`에 저장됩니다.
+- This project is **unofficial** and is not affiliated with, sponsored by, or
+  endorsed by YPT, Pallo Inc., or related rights holders.
+- It is intended only for personal-account interop. It is not intended for
+  manipulating another account, automation abuse, or study-time fabrication.
+- The client talks to YPT's undocumented HTTPS API at `pi.tgclab.com`.
+  Behavior can break without warning and may conflict with service terms.
+- Email and password are used for the YPT login request. The login JWT is stored
+  locally through `shared_preferences`.
 
-## Features
+## What It Does
 
-- Email sign-in with local JWT auto-login
+YPT Desktop Client lets you use core YPT study flows from a desktop-shaped
+interface:
+
+- Email login with local JWT auto-login
 - Per-subject study timer start and stop
-- Daily study time and subject breakdown
-- Category ranking view
-- Joined/browsable groups and group member activity
-- Dark desktop UI with YPT-inspired orange-red accents
+- Daily study time, subject totals, and category ranking
+- Joined groups, browsable groups, and group member activity
+- Flutter desktop build targets for Linux, Windows, and macOS
+- Flutter web build mounted under the landing page at `/demo/`
 
-## Project Layout
+## Download From GitHub Releases
 
-```text
-lib/
-  main.dart                 Flutter entry point and theme
-  app_state.dart            Provider state for auth, timer, stats, groups
-  ypt_api.dart              YPT API client
-  models.dart               API response models
-  screens/                  Login, home, timer, stats, group screens
+Prebuilt desktop assets are attached to
+[GitHub Releases](https://github.com/deveworld/ypt_client/releases):
 
-linux/                      Flutter Linux desktop target
-macos/                      Flutter macOS desktop target
-windows/                    Flutter Windows desktop target
-web/                        Flutter web demo target
-landing/                    Next.js static landing page
-.github/workflows/          GitHub Pages and release build workflows
-```
+- Linux x64 `.tar.gz` plus `.sha256`
+- Windows x64 `.zip` plus `.sha256`
+- macOS x64 `.zip` plus `.sha256`
 
-## Desktop Build
+These are packaged Flutter build outputs. The current workflow does not sign or
+notarize installers.
 
-The Flutter app is configured for Linux, Windows, and macOS desktop. Flutter
-desktop builds should be produced on the matching host OS; local development on
-Linux can build the Linux target directly.
+## Build From Source
+
+Run a Linux desktop development build:
 
 ```bash
 flutter doctor
@@ -58,40 +50,29 @@ flutter pub get
 flutter run -d linux
 ```
 
-Linux release build:
+Build a Linux release locally:
 
 ```bash
-flutter build linux
+flutter build linux --release
 ```
 
-The release executable is generated under:
+The Linux executable bundle is generated under:
 
 ```text
-build/linux/x64/release/bundle/ypt_client
+build/linux/x64/release/bundle/
 ```
 
-## Desktop Release Assets
+Desktop builds should be produced on the matching host OS. For cross-platform
+release assets, use the GitHub Actions workflow described below.
 
-`.github/workflows/release-desktop.yml` builds prebuilt desktop release assets
-for:
+## Web Demo And Landing
 
-- Linux x64 (`.tar.gz`)
-- Windows x64 (`.zip`)
-- macOS x64 (`.zip`)
+The project has two web surfaces:
 
-Run the workflow manually with an existing release tag such as `v0.1.2`. Each
-job uploads the packaged app and a `.sha256` checksum file to that GitHub
-Release.
+- `web/`: Flutter web target for the app demo
+- `landing/`: static Next.js landing page
 
-The release build runs on OS-specific GitHub Actions runners. Flutter desktop
-does not support producing Windows or macOS desktop apps from a Linux host with
-only an extra compiler installed.
-
-## Web Landing Page
-
-The landing page lives in `landing/` and is built as a static Next.js export.
-The Flutter web demo uses the root Flutter app's `web/` target and is mounted
-under `/demo/` during the GitHub Pages build.
+Run the landing page locally:
 
 ```bash
 cd landing
@@ -99,44 +80,84 @@ npm ci
 npm run dev
 ```
 
-Static build:
+Build the static landing page:
 
 ```bash
+cd landing
 npm run build
 ```
 
-The exported site is written to `landing/out/`.
-
-Flutter web demo build:
+Build the Flutter web demo manually:
 
 ```bash
+flutter pub get
 flutter build web --release --base-href /demo/
 ```
 
-## GitHub Pages Deployment
+The GitHub Pages workflow builds both surfaces, copies `build/web/` into
+`landing/out/demo/`, and deploys `landing/out`.
 
-`.github/workflows/deploy-web.yml` deploys the web landing page to GitHub Pages
-when files under `landing/`, `web/`, `lib/`, or Flutter dependency manifests
-change on the `main` branch. The workflow also runs on manual
-`workflow_dispatch`.
+## GitHub Actions
 
-Before first deployment, configure the repository Pages source to **GitHub
-Actions** in GitHub repository settings. For project Pages repositories, the
-workflow automatically builds with the repository name as the Next.js base path
-and mounts the Flutter web demo at `/demo/`. For `*.github.io` repositories,
-it builds at the domain root.
+### Pages Deploy
 
-## Development Notes
+`.github/workflows/deploy-web.yml` runs on `main` when these areas change:
 
-- Keep API behavior isolated in `lib/ypt_api.dart`; the YPT API is
-  undocumented and may change.
-- Keep response parsing defensive. The API uses compact keys and may return
-  numeric fields as different JSON primitive types.
+- `landing/**`
+- `web/**`
+- `lib/**`
+- `pubspec.yaml`
+- `pubspec.lock`
+- the deploy workflow itself
+
+The workflow builds `landing/` as a static Next.js export, builds the Flutter
+web demo from the root `web/` target, copies `build/web/` into
+`landing/out/demo/`, and deploys `landing/out/`.
+
+For project Pages repositories, the workflow uses `/<repo>` as the Next.js base
+path and `/<repo>/demo/` as the Flutter web base href. For `*.github.io`
+repositories, it uses the domain root and `/demo/`.
+
+### Prebuilt Desktop Release Assets
+
+`.github/workflows/release-desktop.yml` is a manual `workflow_dispatch`
+workflow. Give it an existing GitHub Release tag, and it builds/uploads:
+
+- Linux x64 `.tar.gz` plus `.sha256`
+- Windows x64 `.zip` plus `.sha256`
+- macOS x64 `.zip` plus `.sha256`
+
+The workflow uses OS-specific GitHub-hosted runners. Flutter desktop does not
+support building Windows and macOS desktop apps from a Linux host just by
+installing another compiler toolchain.
+
+## Project Layout
+
+```text
+lib/                       Flutter app source
+  app_state.dart           Provider state for auth, timer, stats, groups
+  ypt_api.dart             YPT API client
+  models.dart              API response models
+  screens/                 Login, home, timer, stats, group screens
+
+linux/                     Flutter Linux desktop target
+macos/                     Flutter macOS desktop target
+windows/                   Flutter Windows desktop target
+web/                       Flutter web demo target
+landing/                   Next.js static landing page
+.github/workflows/         Pages deploy and desktop release workflows
+```
+
+## Development Checklist
+
+- Keep undocumented API behavior isolated in `lib/ypt_api.dart`.
+- Keep response parsing defensive; the API may change field names or value
+  types.
 - Run `flutter analyze` before shipping Flutter changes when the Flutter SDK is
   available.
 - Run `npm run build` inside `landing/` before shipping landing page changes.
 - Run `flutter build web --release --base-href /demo/` before shipping web demo
-  changes when the Flutter SDK is available.
+  changes.
 
 ## License
 

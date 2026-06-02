@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Clock3,
+  Download,
   ExternalLink,
   Monitor,
   PlayCircle,
@@ -10,39 +11,44 @@ import {
 } from "lucide-react";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-const repoUrl = process.env.NEXT_PUBLIC_REPOSITORY_URL || "https://github.com";
+const repoUrl = process.env.NEXT_PUBLIC_REPOSITORY_URL || "https://github.com/deveworld/ypt_client";
 
 const text = {
   navFeatures: { en: "Features", ko: "기능" },
   navDemo: { en: "Demo", ko: "데모" },
+  navReleases: { en: "Releases", ko: "릴리스" },
   navBuild: { en: "Build", ko: "빌드" },
   navNotice: { en: "Notice", ko: "고지" },
   primaryNavigation: { en: "Primary navigation", ko: "주요 탐색" },
-  eyebrowHero: { en: "Study cockpit / unofficial", ko: "비공식 스터디 콕핏" },
+  eyebrowHero: { en: "Unofficial YPT desktop app", ko: "비공식 열품타 데스크톱 앱" },
+  heroTitle: { en: "YPT for\nDesktop", ko: "열품타\n데스크톱" },
   heroCopy: {
-    en: "A desktop-shaped bridge for your YPT routine: timer control, daily readouts, group pulse, and a browser demo from the same Flutter app.",
-    ko: "열품타 루틴을 데스크톱 형태로 다루는 비공식 브리지입니다. 타이머 제어, 오늘의 기록, 그룹 현황, 같은 Flutter 앱의 브라우저 데모를 제공합니다."
+    en: "Start subject timers, check today's study time, compare rankings, and browse group activity without opening the mobile app.",
+    ko: "모바일 앱을 열지 않고 과목별 타이머를 시작하고, 오늘 공부시간과 랭킹, 그룹 현황을 확인합니다."
   },
-  tryDemo: { en: "Try demo", ko: "데모 실행" },
-  buildLocally: { en: "Build locally", ko: "로컬 빌드" },
-  statusLinux: { en: "Desktop prebuilds", ko: "데스크톱 prebuild" },
-  statusDemo: { en: "Web demo", ko: "웹 데모" },
-  statusJwt: { en: "Local JWT storage", ko: "JWT 로컬 저장" },
-  statusRisk: { en: "Use at your own risk", ko: "사용 책임 본인" },
+  downloadBuilds: { en: "Download builds", ko: "빌드 다운로드" },
+  openDemo: { en: "Open web demo", ko: "웹 데모 실행" },
+  buildFromSource: { en: "Build from source", ko: "소스에서 빌드" },
+  visualLabel: { en: "Actual Flutter app screen", ko: "실제 Flutter 앱 화면" },
+  visualFooter: { en: "Timer / stats / groups", ko: "타이머 / 통계 / 그룹" },
+  statusLinux: { en: "Desktop release assets", ko: "데스크톱 릴리스 파일" },
+  statusDemo: { en: "Flutter web demo", ko: "Flutter 웹 데모" },
+  statusJwt: { en: "JWT stored locally", ko: "JWT 로컬 저장" },
+  statusRisk: { en: "Undocumented API", ko: "문서화되지 않은 API" },
   projectStatus: { en: "Project status", ko: "프로젝트 상태" },
-  desktopWorkflow: { en: "Instrument lanes", ko: "계측 레인" },
+  desktopWorkflow: { en: "Core surfaces", ko: "핵심 화면" },
   featureHeading: {
-    en: "The app surface becomes the navigation",
-    ko: "앱 화면 자체가 탐색 구조가 됩니다"
+    en: "Timer, study stats, and groups stay in one desktop window",
+    ko: "타이머, 공부 통계, 그룹 현황을 한 데스크톱 창에 모았습니다"
   },
-  implementation: { en: "Under the panel", ko: "패널 아래 구조" },
+  implementation: { en: "API boundary", ko: "API 경계" },
   implementationHeading: {
-    en: "Built as a replaceable API edge",
-    ko: "교체 가능한 API 경계로 구성"
+    en: "Built for an API that can change without warning",
+    ko: "예고 없이 바뀔 수 있는 API를 전제로 구성"
   },
   implementationBody: {
-    en: "API calls, parsing, state, and screens are kept apart so an undocumented response change can be fixed at the edge instead of redesigning the whole client.",
-    ko: "API 호출, 응답 파싱, 상태, 화면을 분리해 문서화되지 않은 응답이 바뀌어도 전체 클라이언트를 다시 설계하지 않고 경계에서 고칠 수 있게 했습니다."
+    en: "The client separates API calls, response parsing, app state, and screens so undocumented response changes can be fixed near the edge.",
+    ko: "API 호출, 응답 파싱, 앱 상태, 화면을 분리해 문서화되지 않은 응답 변경을 경계 부근에서 고칠 수 있게 했습니다."
   },
   runLocally: { en: "Run locally", ko: "로컬 실행" },
   buildHeading: {
@@ -109,6 +115,8 @@ function I18n({ value }) {
 export default function Page() {
   const heroImage = `${basePath}/hero-dashboard.png`;
   const demoUrl = `${basePath}/demo/`;
+  const normalizedRepoUrl = repoUrl.replace(/\/$/, "");
+  const releasesUrl = `${normalizedRepoUrl}/releases`;
 
   return (
     <main>
@@ -129,6 +137,7 @@ export default function Page() {
           <div className="navLinks">
             <a href="#features"><I18n value={text.navFeatures} /></a>
             <a href={demoUrl}><I18n value={text.navDemo} /></a>
+            <a href={releasesUrl}><I18n value={text.navReleases} /></a>
             <a href="#build"><I18n value={text.navBuild} /></a>
             <a href="#notice"><I18n value={text.navNotice} /></a>
           </div>
@@ -137,20 +146,20 @@ export default function Page() {
         <div id="top" className="heroContent">
           <div className="heroText">
             <p className="eyebrow"><I18n value={text.eyebrowHero} /></p>
-            <h1>
-              <span>YPT</span>
-              <span>Desktop</span>
-              <span>Client</span>
-            </h1>
+            <h1><I18n value={text.heroTitle} /></h1>
             <p className="heroCopy"><I18n value={text.heroCopy} /></p>
             <div className="heroActions">
-              <a className="button primary" href={demoUrl}>
+              <a className="button primary" href={releasesUrl}>
+                <Download size={18} />
+                <I18n value={text.downloadBuilds} />
+              </a>
+              <a className="button secondary" href={demoUrl}>
                 <PlayCircle size={18} />
-                <I18n value={text.tryDemo} />
+                <I18n value={text.openDemo} />
               </a>
               <a className="button secondary" href="#build">
                 <Terminal size={18} />
-                <I18n value={text.buildLocally} />
+                <I18n value={text.buildFromSource} />
               </a>
               <a className="button secondary" href={repoUrl}>
                 <ExternalLink size={18} />
@@ -158,6 +167,23 @@ export default function Page() {
               </a>
             </div>
           </div>
+          <div className="heroVisual">
+            <div className="visualHeader">
+              <span><I18n value={text.visualLabel} /></span>
+              <span>v0.1.2</span>
+            </div>
+            <img
+              className="heroScreenshot"
+              src={heroImage}
+              alt="YPT Desktop Client timer dashboard"
+            />
+            <div className="visualFooter">
+              <span><I18n value={text.visualFooter} /></span>
+              <span>Flutter</span>
+            </div>
+          </div>
+        </div>
+        <div className="heroMeta">
           <div className="statusRail">
             <span className="srOnly"><I18n value={text.projectStatus} /></span>
             <span><I18n value={text.statusLinux} /></span>
