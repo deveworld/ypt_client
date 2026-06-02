@@ -18,10 +18,10 @@ const text = {
   navBuild: { en: "Build", ko: "빌드" },
   navNotice: { en: "Notice", ko: "고지" },
   primaryNavigation: { en: "Primary navigation", ko: "주요 탐색" },
-  eyebrowHero: { en: "Unofficial interop client", ko: "비공식 연동 클라이언트" },
+  eyebrowHero: { en: "Study cockpit / unofficial", ko: "비공식 스터디 콕핏" },
   heroCopy: {
-    en: "Run your YPT study timer, daily stats, and group activity from a Flutter client with desktop prebuilds and a browser demo.",
-    ko: "열품타 공부 타이머, 오늘의 통계, 그룹 현황을 데스크톱 prebuild와 브라우저 데모로 확인하는 비공식 Flutter 클라이언트입니다."
+    en: "A desktop-shaped bridge for your YPT routine: timer control, daily readouts, group pulse, and a browser demo from the same Flutter app.",
+    ko: "열품타 루틴을 데스크톱 형태로 다루는 비공식 브리지입니다. 타이머 제어, 오늘의 기록, 그룹 현황, 같은 Flutter 앱의 브라우저 데모를 제공합니다."
   },
   tryDemo: { en: "Try demo", ko: "데모 실행" },
   buildLocally: { en: "Build locally", ko: "로컬 빌드" },
@@ -30,19 +30,19 @@ const text = {
   statusJwt: { en: "Local JWT storage", ko: "JWT 로컬 저장" },
   statusRisk: { en: "Use at your own risk", ko: "사용 책임 본인" },
   projectStatus: { en: "Project status", ko: "프로젝트 상태" },
-  desktopWorkflow: { en: "Desktop workflow", ko: "데스크톱 워크플로" },
+  desktopWorkflow: { en: "Instrument lanes", ko: "계측 레인" },
   featureHeading: {
-    en: "Focused timer control without the mobile window",
-    ko: "모바일 창 없이 집중하는 타이머 관리"
+    en: "The app surface becomes the navigation",
+    ko: "앱 화면 자체가 탐색 구조가 됩니다"
   },
-  implementation: { en: "Implementation", ko: "구현" },
+  implementation: { en: "Under the panel", ko: "패널 아래 구조" },
   implementationHeading: {
-    en: "Small app, clear boundaries",
-    ko: "작은 앱, 명확한 경계"
+    en: "Built as a replaceable API edge",
+    ko: "교체 가능한 API 경계로 구성"
   },
   implementationBody: {
-    en: "The desktop client keeps API access, response models, application state, and screens separated so the undocumented API surface can be adjusted without reshaping the whole app.",
-    ko: "데스크톱 클라이언트는 API 접근, 응답 모델, 앱 상태, 화면을 분리해 문서화되지 않은 API가 바뀌어도 전체 앱 구조를 다시 짜지 않도록 구성했습니다."
+    en: "API calls, parsing, state, and screens are kept apart so an undocumented response change can be fixed at the edge instead of redesigning the whole client.",
+    ko: "API 호출, 응답 파싱, 상태, 화면을 분리해 문서화되지 않은 응답이 바뀌어도 전체 클라이언트를 다시 설계하지 않고 경계에서 고칠 수 있게 했습니다."
   },
   runLocally: { en: "Run locally", ko: "로컬 실행" },
   buildHeading: {
@@ -135,22 +135,28 @@ export default function Page() {
         </nav>
 
         <div id="top" className="heroContent">
-          <p className="eyebrow"><I18n value={text.eyebrowHero} /></p>
-          <h1>YPT Desktop Client</h1>
-          <p className="heroCopy"><I18n value={text.heroCopy} /></p>
-          <div className="heroActions">
-            <a className="button primary" href={demoUrl}>
-              <PlayCircle size={18} />
-              <I18n value={text.tryDemo} />
-            </a>
-            <a className="button secondary" href="#build">
-              <Terminal size={18} />
-              <I18n value={text.buildLocally} />
-            </a>
-            <a className="button secondary" href={repoUrl}>
-              <ExternalLink size={18} />
-              GitHub
-            </a>
+          <div className="heroText">
+            <p className="eyebrow"><I18n value={text.eyebrowHero} /></p>
+            <h1>
+              <span>YPT</span>
+              <span>Desktop</span>
+              <span>Client</span>
+            </h1>
+            <p className="heroCopy"><I18n value={text.heroCopy} /></p>
+            <div className="heroActions">
+              <a className="button primary" href={demoUrl}>
+                <PlayCircle size={18} />
+                <I18n value={text.tryDemo} />
+              </a>
+              <a className="button secondary" href="#build">
+                <Terminal size={18} />
+                <I18n value={text.buildLocally} />
+              </a>
+              <a className="button secondary" href={repoUrl}>
+                <ExternalLink size={18} />
+                GitHub
+              </a>
+            </div>
           </div>
           <div className="statusRail">
             <span className="srOnly"><I18n value={text.projectStatus} /></span>
@@ -168,11 +174,14 @@ export default function Page() {
           <h2><I18n value={text.featureHeading} /></h2>
         </div>
         <div className="featureGrid">
-          {features.map(({ icon: Icon, title, body }) => (
+          {features.map(({ icon: Icon, title, body }, index) => (
             <article className="featureCard" key={title.en}>
-              <Icon size={22} aria-hidden="true" />
-              <h3><I18n value={title} /></h3>
-              <p><I18n value={body} /></p>
+              <span className="featureIndex">{String(index + 1).padStart(2, "0")}</span>
+              <Icon size={24} aria-hidden="true" />
+              <div>
+                <h3><I18n value={title} /></h3>
+                <p><I18n value={body} /></p>
+              </div>
             </article>
           ))}
         </div>
