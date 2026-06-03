@@ -52,3 +52,16 @@ target_link_libraries(${BINARY_NAME} PRIVATE
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+# 클린 머신에서도 실행되도록 MSVC 런타임 DLL(vcruntime140*, msvcp140)을 동봉.
+# (UCRT 은 Windows 10+ 기본 내장이라 제외)
+set(CMAKE_INSTALL_UCRT_LIBRARIES FALSE)
+include(InstallRequiredSystemLibraries)
+if(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+  add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}
+      "$<TARGET_FILE_DIR:${BINARY_NAME}>"
+    COMMAND_EXPAND_LISTS
+  )
+endif()
