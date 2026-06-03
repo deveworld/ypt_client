@@ -9,12 +9,20 @@ project(runner LANGUAGES CXX)
 add_executable(${BINARY_NAME} WIN32
   "flutter_window.cpp"
   "main.cpp"
+  "social_webview.cpp"
   "utils.cpp"
   "win32_window.cpp"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
   "Runner.rc"
   "runner.exe.manifest"
 )
+
+# WebView2 SDK (NuGet) — 소셜 로그인 인터셉터용 임베디드 브라우저
+include(FetchContent)
+FetchContent_Declare(webview2
+  URL "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.2592.51"
+)
+FetchContent_MakeAvailable(webview2)
 
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.
@@ -35,6 +43,12 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
 target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
+
+# WebView2 헤더/로더 (정적 로더 링크 — 런타임은 시스템 WebView2 Runtime 사용)
+target_include_directories(${BINARY_NAME} PRIVATE
+  "${webview2_SOURCE_DIR}/build/native/include")
+target_link_libraries(${BINARY_NAME} PRIVATE
+  "${webview2_SOURCE_DIR}/build/native/x64/WebView2LoaderStatic.lib")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
