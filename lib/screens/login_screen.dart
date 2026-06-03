@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
+import '../social_auth.dart';
 import '../main.dart' show kBrand;
 
 class LoginScreen extends StatefulWidget {
@@ -112,9 +114,42 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.bold)),
                 ),
+                const SizedBox(height: 18),
+                // 구분선 "or"
+                Row(children: [
+                  Expanded(child: Divider(color: Colors.grey[800])),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text('or',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey[800])),
+                ]),
+                const SizedBox(height: 16),
+                // 소셜 로그인 (실제 앱과 동일한 공급자/엔드포인트)
+                _SocialButton(
+                  label: 'Continue with Kakao',
+                  bg: const Color(0xFFFEE500),
+                  fg: const Color(0xFF191600),
+                  icon: Icons.chat_bubble,
+                  enabled: !kIsWeb && !st.loading,
+                  onTap: () => st.socialLogin(SocialProvider.kakao),
+                ),
+                const SizedBox(height: 10),
+                _SocialButton(
+                  label: 'Continue with Naver',
+                  bg: const Color(0xFF03C75A),
+                  fg: Colors.white,
+                  icon: Icons.navigation,
+                  enabled: !kIsWeb && !st.loading,
+                  onTap: () => st.socialLogin(SocialProvider.naver),
+                ),
                 const SizedBox(height: 16),
                 Center(
-                  child: Text('Sign in with your YPT account (email signup)',
+                  child: Text(
+                      kIsWeb
+                          ? 'Social login (Kakao/Naver) is available in the desktop app only'
+                          : 'Email or Kakao/Naver — your real YPT account',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                 ),
@@ -129,5 +164,42 @@ class _LoginScreenState extends State<LoginScreen> {
   void _submit(AppState st) {
     if (_email.text.isEmpty || _pw.text.isEmpty) return;
     st.login(_email.text.trim(), _pw.text);
+  }
+}
+
+/// 공급자별 색을 가진 소셜 로그인 버튼.
+class _SocialButton extends StatelessWidget {
+  final String label;
+  final Color bg;
+  final Color fg;
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _SocialButton({
+    required this.label,
+    required this.bg,
+    required this.fg,
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: enabled ? onTap : null,
+      icon: Icon(icon, size: 18, color: fg),
+      label: Text(label,
+          style: TextStyle(
+              color: fg, fontSize: 15, fontWeight: FontWeight.w600)),
+      style: FilledButton.styleFrom(
+        backgroundColor: bg,
+        disabledBackgroundColor: bg.withValues(alpha: 0.4),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 }

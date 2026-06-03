@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ypt_api.dart';
 import 'models.dart';
+import 'social_auth.dart';
 
 class AppState extends ChangeNotifier {
   final YptApi api = YptApi();
@@ -30,6 +31,24 @@ class AppState extends ChangeNotifier {
       return subjectTimes.values.fold(0, (a, b) => a + b);
     }
     return user?.dayLog?.studyMs ?? 0;
+  }
+
+  // 프로필/과목 재동기화 (새로고침 버튼용)
+  bool profileLoading = false;
+
+  Future<void> reloadProfile() async {
+    if (api.jwt == null) return;
+    profileLoading = true;
+    errorText = null;
+    notifyListeners();
+    try {
+      user = await api.reloadInfo();
+      await _refreshSubjectTimesQuietly();
+    } catch (e) {
+      errorText = 'Could not load subjects: ${_readableError(e)}';
+    }
+    profileLoading = false;
+    notifyListeners();
   }
 
   Future<void> refreshSubjectTimes() async {
@@ -155,6 +174,44 @@ class AppState extends ChangeNotifier {
       }
     } catch (e) {
       errorText = 'Network error: ${_readableError(e)}';
+    }
+    loading = false;
+    notifyListeners();
+    return false;
+  }
+
+  /// 소셜 로그인 (Kakao/Naver): 시스템 브라우저 OAuth → YPT 교환 → jwt 저장.
+  /// 반환: true=성공, false=실패/취소.
+  Future<bool> socialLogin(SocialProvider provider) async {
+    loading = true;
+    errorText = null;
+    notifyListeners();
+    final auth = SocialAuth(provider);
+    try {
+      final cred = await auth.authenticate();
+      final res = await api.socialSignIn(cred);
+      switch (res) {
+        case SignInOk(:final data):
+          user = data;
+          final sp = await SharedPreferences.getInstance();
+          await sp.setString('jwt', data.jwt!);
+          // sign-up-jwt 응답은 과목(ss)을 비워 줄 수 있어 전체 데이터로 동기화
+          try {
+            user = await api.reloadInfo();
+          } catch (_) {}
+          await _refreshSubjectTimesQuietly();
+          loading = false;
+          notifyListeners();
+          return true;
+        case SignInError(:final code):
+          errorText = errorMessage(code);
+      }
+    } on SocialAuthCancelled {
+      // 사용자가 로그인 안 함(취소/타임아웃) — 조용히 무시
+    } catch (e) {
+      errorText = '${provider.name} login failed: ${_readableError(e)}';
+    } finally {
+      auth.close();
     }
     loading = false;
     notifyListeners();
@@ -297,6 +354,10 @@ class AppState extends ChangeNotifier {
   static String _readableError(Object e) {
     final text = e.toString();
     if (text.startsWith('TimeoutException')) return 'request timed out';
+    // 소셜 네이티브 인터셉터 미구현 플랫폼(현재 Windows/macOS)
+    if (text.startsWith('MissingPluginException')) {
+      return 'not supported on this platform yet';
+    }
     if (text.startsWith('Exception: ')) return text.substring(11);
     return text;
   }

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app_state.dart';
@@ -74,41 +73,25 @@ class _CategoryPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = category.isEmpty ? '—' : category;
     final width = MediaQuery.sizeOf(context).width;
-    final maxWidth = width >= 720
-        ? 180.0
-        : width >= 480
-            ? 150.0
-            : 128.0;
+    final maxWidth = (width * 0.45).clamp(160.0, 360.0);
     final scheme = Theme.of(context).colorScheme;
-    const textStyle = TextStyle(fontSize: 13, fontWeight: FontWeight.w700);
-    final textPainter = TextPainter(
-      text: const TextSpan(style: textStyle),
-      maxLines: 1,
-      textDirection: Directionality.of(context),
-    )..text = TextSpan(text: label, style: textStyle);
-    textPainter.layout(maxWidth: maxWidth - 24);
-    final pillWidth =
-        math.min(maxWidth, math.max(46.0, textPainter.width + 24));
-
-    return SizedBox(
-      width: pillWidth,
-      height: 34,
-      child: DecoratedBox(
+    // Container가 콘텐츠 너비에 맞춰 늘어나고, maxWidth 초과 시에만 말줄임.
+    return Tooltip(
+      message: label,
+      child: Container(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: scheme.outline.withValues(alpha: 0.55)),
           color: scheme.surfaceContainerHighest.withValues(alpha: 0.32),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Center(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle,
-            ),
-          ),
+        child: Text(
+          label,
+          maxLines: 1,
+          softWrap: false,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
       ),
     );

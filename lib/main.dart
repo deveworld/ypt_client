@@ -11,6 +11,7 @@ const kCard = Color(0xFF18181B);
 const kCard2 = Color(0xFF222227);
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppState()..tryAutoLogin(),

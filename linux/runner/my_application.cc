@@ -6,6 +6,7 @@
 #endif
 
 #include "flutter/generated_plugin_registrant.h"
+#include "social_webview.h"
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -22,6 +23,15 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
+
+  // 단일 인스턴스: 이미 창이 있으면 새로 만들지 않고 기존 창을 앞으로.
+  // (딥링크로 두 번째 인스턴스가 떠도 실행 중인 앱으로 라우팅되도록)
+  GList* windows = gtk_application_get_windows(GTK_APPLICATION(application));
+  if (windows) {
+    gtk_window_present(GTK_WINDOW(windows->data));
+    return;
+  }
+
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
@@ -75,6 +85,10 @@ static void my_application_activate(GApplication* application) {
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
+  // 소셜 로그인용 임베디드 WebKit 인터셉터 채널 등록.
+  social_webview_register(
+      fl_engine_get_binary_messenger(fl_view_get_engine(view)));
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
@@ -96,7 +110,9 @@ static gboolean my_application_local_command_line(GApplication* application,
   g_application_activate(application);
   *exit_status = 0;
 
-  return TRUE;
+  // FALSE: 기본 command-line 처리를 계속 진행시켜 app_links 가 URI 인자를
+  // 실행 중 인스턴스로 전달받게 한다.
+  return FALSE;
 }
 
 // Implements GApplication::startup.
@@ -142,7 +158,8 @@ MyApplication* my_application_new() {
   // the application to be recognized beyond its binary name.
   g_set_prgname(APPLICATION_ID);
 
-  return MY_APPLICATION(g_object_new(my_application_get_type(),
-                                     "application-id", APPLICATION_ID, "flags",
-                                     G_APPLICATION_NON_UNIQUE, nullptr));
+  return MY_APPLICATION(g_object_new(
+      my_application_get_type(), "application-id", APPLICATION_ID, "flags",
+      G_APPLICATION_HANDLES_COMMAND_LINE | G_APPLICATION_HANDLES_OPEN,
+      nullptr));
 }

@@ -114,14 +114,41 @@ class TimerView extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 20),
-        // 과목 카드 리스트
+        // 과목 카드 리스트 — 비어 있으면 새로고침 버튼
         Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            itemCount: user.subjects.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _SubjectCard(subject: user.subjects[i]),
-          ),
+          child: user.subjects.isEmpty
+              ? Center(
+                  child: st.profileLoading
+                      ? const CircularProgressIndicator()
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('No subjects loaded',
+                                style: TextStyle(
+                                    color: Colors.grey[600], fontSize: 13)),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  context.read<AppState>().reloadProfile(),
+                              icon: const Icon(Icons.refresh, size: 18),
+                              label: const Text('Refresh'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: kBrand,
+                                side: BorderSide(
+                                    color: kBrand.withValues(alpha: 0.5)),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ],
+                        ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: user.subjects.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) => _SubjectCard(subject: user.subjects[i]),
+                ),
         ),
       ],
     );

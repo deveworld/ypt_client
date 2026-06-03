@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'models.dart';
+import 'social_auth.dart';
 
 /// YPT API 클라이언트. RE 스펙(YPT_API_SPEC_FINAL.md) 기반.
 /// base=https://pi.tgclab.com, 인증=Authorization: JWT <token>.
@@ -80,13 +81,47 @@ class YptApi {
     return SignInError(j['c']?.toString() ?? 'unknown');
   }
 
+  /// POST /user/social/sign-up-jwt — 소셜 로그인/가입(멱등). 성공 시 jwt 저장.
+  /// 실제 앱과 동일 바디: {accessToken, providerId, email, loginProvider, new, getx, version}.
+  /// providerId가 신규면 가입, 기존이면 그 계정으로 로그인 (RE: spec/SOCIAL_LOGIN.md).
+  Future<SignInResult> socialSignIn(SocialCredential cred) async {
+    final r = await _post(
+        '/user/social/sign-up-jwt',
+        {
+          'accessToken': cred.accessToken,
+          'providerId': cred.providerId,
+          'email': cred.email,
+          'loginProvider': cred.loginProvider,
+          'new': true,
+          'getx': true,
+          'version': 810046,
+        },
+        auth: false);
+    if (r.statusCode != 200) return SignInError('http_${r.statusCode}');
+    final j = _decodeObject(r);
+    if (j['s'] == true) {
+      final token = j['jwt']?.toString();
+      if (token == null || token.isEmpty) return SignInError('missing_jwt');
+      jwt = token;
+      return SignInOk(UserData.fromJson(j));
+    }
+    return SignInError(j['c']?.toString() ?? 'unknown');
+  }
+
   /// POST /user/v2/reload/info — 프로필/과목/오늘로그 갱신.
-  /// 바디: {pv, cd:{su,sbu,cu,eu,du,tu 동기화 시각}}. 오래된 시각을 보내 전체 데이터 수신.
+  /// 실제 앱과 동일: cd 값을 전부 null로 보내야 전체 데이터(ss 등)를 받는다.
+  /// (오래된 타임스탬프를 보내면 델타만 와서 과목이 빠짐 — 캡처로 확인)
   Future<UserData> reloadInfo() async {
-    const old = '2019-01-01T00:00:00+00:00';
     final r = await _post('/user/v2/reload/info', {
-      'pv': 2,
-      'cd': {'su': old, 'sbu': old, 'cu': old, 'eu': old, 'du': old, 'tu': old},
+      'pv': 0,
+      'cd': {
+        'su': null,
+        'sbu': null,
+        'cu': null,
+        'eu': null,
+        'du': null,
+        'tu': null,
+      },
     });
     _ensureOk(r, 'reload/info');
     return UserData.fromJson(_decodeObject(r));
