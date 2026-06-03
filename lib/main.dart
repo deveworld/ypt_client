@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
+import 'ca_setup.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -10,8 +11,9 @@ const kBg = Color(0xFF0D0D0F);
 const kCard = Color(0xFF18181B);
 const kCard2 = Color(0xFF222227);
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await setupCaCerts(); // Windows TLS 루트 보완 (웹/기타 플랫폼은 no-op)
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppState()..tryAutoLogin(),

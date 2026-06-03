@@ -3,19 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download } from "lucide-react";
 
-const releaseTag = "v0.1.2";
-
+// 버전 무관 고정 에셋 이름 → /releases/latest/download 로 항상 최신 릴리스 연결.
 const targets = {
   windows: {
-    asset: "ypt_client-windows-x64-v0.1.2.zip",
+    asset: "ypt_client-windows-x64.zip",
     label: { en: "Download for Windows", ko: "Windows 다운로드" }
   },
   macos: {
-    asset: "ypt_client-macos-x64-v0.1.2.zip",
+    asset: "ypt_client-macos.zip",
     label: { en: "Download for macOS", ko: "macOS 다운로드" }
   },
   linux: {
-    asset: "ypt_client-linux-x64-v0.1.2.tar.gz",
+    asset: "ypt_client-linux-x64.zip",
     label: { en: "Download for Linux", ko: "Linux 다운로드" }
   },
   unknown: {
@@ -53,8 +52,9 @@ export default function DownloadButton({ repoUrl }) {
 
   const target = targets[platform] || targets.unknown;
   const href = useMemo(() => {
-    if (!target.asset) return `${normalizedRepoUrl}/releases`;
-    return `${normalizedRepoUrl}/releases/download/${releaseTag}/${target.asset}`;
+    if (!target.asset) return `${normalizedRepoUrl}/releases/latest`;
+    // GitHub 'latest' 다운로드 리다이렉트 — 에셋 이름이 고정이라 항상 최신 릴리스.
+    return `${normalizedRepoUrl}/releases/latest/download/${target.asset}`;
   }, [normalizedRepoUrl, target.asset]);
 
   const label = target.label[locale];

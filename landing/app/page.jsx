@@ -7,6 +7,7 @@ import {
   UsersRound
 } from "lucide-react";
 import DownloadButton from "./DownloadButton";
+import LatestVersion from "./LatestVersion";
 import LocaleToggle from "./LocaleToggle";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -159,7 +160,7 @@ export default function Page() {
           <div className="heroVisual">
             <div className="visualHeader">
               <span><I18n value={text.visualLabel} /></span>
-              <span>v0.1.2</span>
+              <LatestVersion repoUrl={normalizedRepoUrl} />
             </div>
             <img
               className="heroScreenshot"
