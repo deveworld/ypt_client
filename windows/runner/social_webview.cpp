@@ -5,7 +5,6 @@
 #include <WebView2.h>
 
 #include <flutter/method_channel.h>
-#include <flutter/plugin_registrar.h>
 #include <flutter/standard_method_codec.h>
 
 #include <map>
@@ -207,14 +206,13 @@ void OpenOAuth(
 }  // namespace
 
 void SocialWebviewRegister(flutter::FlutterEngine* engine) {
-  auto registrar = std::make_shared<flutter::PluginRegistrar>(
-      engine->GetRegistrarForPlugin("SocialWebview"));
+  // FlutterEngine::messenger() 는 앱 래퍼(코어)에 있어 PluginRegistrar 불필요.
   auto channel =
       std::make_shared<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "ypt/social_webview",
+          engine->messenger(), "ypt/social_webview",
           &flutter::StandardMethodCodec::GetInstance());
   channel->SetMethodCallHandler(
-      [registrar, channel](
+      [channel](
           const flutter::MethodCall<flutter::EncodableValue>& call,
           std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
               result) {
