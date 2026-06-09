@@ -15,6 +15,7 @@ for YPT / 열품타.
   Behavior can break without warning and may conflict with service terms.
 - Email and password are used for the YPT login request. The login JWT is stored
   locally through `shared_preferences`.
+- Also, I used Codex (GPT 5.5) for the document part, and got some advice from Claude AI on APK reverse engineering.
 
 ## What It Does
 
