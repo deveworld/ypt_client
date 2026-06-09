@@ -17,6 +17,7 @@
   예고 없이 동작이 바뀔 수 있고, 서비스 약관과 충돌할 수 있습니다.
 - 이메일과 비밀번호는 YPT 로그인 요청에 사용됩니다. 로그인 JWT는
   `shared_preferences`를 통해 로컬에 저장됩니다.
+- Also, I used Codex (GPT 5.5) for the document part, and got some advice from Claude AI on APK reverse engineering.
 
 ## 주요 기능
 
