@@ -3,6 +3,8 @@
 Unofficial Flutter desktop client, Flutter web demo, and Next.js landing page
 for YPT / 열품타.
 
+[Korean README](README_ko.md)
+
 ![YPT Desktop Client landing hero](landing/public/hero-dashboard.png)
 
 ## Important Notice
