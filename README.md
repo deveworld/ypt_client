@@ -40,8 +40,9 @@ Prebuilt desktop assets are attached to
 - Windows x64 `.zip` plus `.sha256`
 - macOS x64 `.zip` plus `.sha256`
 
-These are packaged Flutter build outputs. The current workflow does not sign or
-notarize installers.
+These are packaged Flutter build outputs. The current workflow does not sign or notarize installers.
+
+You may need libwebkit2gtk-4.1-0
 
 ## Build From Source
 
